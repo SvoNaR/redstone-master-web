@@ -36,6 +36,7 @@ public class HeaderModelAdvice {
 		if (user == null) {
 			return null;
 		}
+		this.notificationService.syncForUser(user);
 		int count = this.notificationService.getNotificationCount(user);
 		return new HeaderUserView(
 				user.getUsername(),

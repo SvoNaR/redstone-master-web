@@ -40,6 +40,14 @@ public class User {
 
 	private Instant emailVerificationExpiresAt;
 
+	@Column(length = 255)
+	private String pendingEmail;
+
+	@Column(length = 64)
+	private String pendingEmailVerificationToken;
+
+	private Instant pendingEmailVerificationExpiresAt;
+
 	@Column(nullable = false)
 	private Instant createdAt = Instant.now();
 
@@ -71,6 +79,10 @@ public class User {
 
 	public String getEmail() {
 		return this.email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
 	}
 
 	public String getPasswordHash() {
@@ -142,5 +154,35 @@ public class User {
 
 	public void setProfileIntroSeen(boolean profileIntroSeen) {
 		this.profileIntroSeen = profileIntroSeen;
+	}
+
+	public String getPendingEmail() {
+		return this.pendingEmail;
+	}
+
+	public void setPendingEmail(String pendingEmail) {
+		this.pendingEmail = pendingEmail;
+	}
+
+	public String getPendingEmailVerificationToken() {
+		return this.pendingEmailVerificationToken;
+	}
+
+	public void setPendingEmailVerificationToken(String pendingEmailVerificationToken) {
+		this.pendingEmailVerificationToken = pendingEmailVerificationToken;
+	}
+
+	public Instant getPendingEmailVerificationExpiresAt() {
+		return this.pendingEmailVerificationExpiresAt;
+	}
+
+	public void setPendingEmailVerificationExpiresAt(Instant pendingEmailVerificationExpiresAt) {
+		this.pendingEmailVerificationExpiresAt = pendingEmailVerificationExpiresAt;
+	}
+
+	public void clearPendingEmailChange() {
+		this.pendingEmail = null;
+		this.pendingEmailVerificationToken = null;
+		this.pendingEmailVerificationExpiresAt = null;
 	}
 }

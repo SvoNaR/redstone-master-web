@@ -1,35 +1,103 @@
 package ru.redstonemaster.web.notification;
 
 import org.springframework.stereotype.Service;
-import ru.redstonemaster.web.locale.WebLocale;
+import org.springframework.transaction.annotation.Transactional;
+import ru.redstonemaster.web.news.NewsPost;
 import ru.redstonemaster.web.user.User;
+import ru.redstonemaster.web.user.UserRepository;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class NotificationService {
 
-	public List<NotificationView> getNotifications(User user, WebLocale locale) {
-		List<NotificationView> notifications = new ArrayList<>();
-		if (!user.isEmailVerified()) {
-			notifications.add(this.emailVerificationNotification(locale));
-		}
-		if (!user.isProfileIntroSeen()) {
-			notifications.add(this.avatarSetupNotification(locale));
-		}
-		return notifications;
+	private static final String SOURCE_AVATAR = "system:avatar";
+
+	private final UserNotificationRepository notificationRepository;
+	private final UserRepository userRepository;
+
+	public NotificationService(
+			UserNotificationRepository notificationRepository,
+			UserRepository userRepository
+	) {
+		this.notificationRepository = notificationRepository;
+		this.userRepository = userRepository;
 	}
 
-	public int getNotificationCount(User user) {
-		int count = 0;
-		if (!user.isEmailVerified()) {
-			count++;
-		}
+	@Transactional
+	public void syncForUser(User user) {
 		if (!user.isProfileIntroSeen()) {
-			count++;
+			this.ensureNotification(
+					user,
+					SOURCE_AVATAR,
+					NotificationType.AVATAR_SETUP,
+					"Настройте аватарку",
+					"Set up your avatar",
+					"Загрузите скин Minecraft 64×64 или готовую аватарку 8×8 для профиля.",
+					"Upload a Minecraft skin (64×64) or a ready-made 8×8 avatar for your profile.",
+					"/profile/avatar",
+					"Сменить аватарку",
+					"Change avatar"
+			);
+		} else {
+			this.autoResolve(user, SOURCE_AVATAR);
 		}
-		return count;
+	}
+
+	@Transactional
+	public void notifyNewsPublished(NewsPost news) {
+		String sourceKey = newsSourceKey(news.getId());
+		String titleRu = "Последняя новость: " + news.getTitleRu();
+		String titleEn = "Latest post: " + news.getTitleEn();
+		String messageRu = this.truncate(news.getBodyRu(), 220);
+		String messageEn = this.truncate(news.getBodyEn(), 220);
+		String actionPath = "/news/" + news.getId();
+
+		for (User user : this.userRepository.findAll()) {
+			if (this.notificationRepository.findByUserIdAndSourceKey(user.getId(), sourceKey).isPresent()) {
+				continue;
+			}
+			this.notificationRepository.save(new UserNotification(
+					user,
+					NotificationType.NEWS,
+					sourceKey,
+					titleRu,
+					titleEn,
+					messageRu,
+					messageEn,
+					actionPath,
+					"Читать",
+					"Read"
+			));
+		}
+	}
+
+	@Transactional
+	public void deleteNewsNotifications(Long newsId) {
+		this.notificationRepository.deleteBySourceKey(newsSourceKey(newsId));
+	}
+
+	public static String newsSourceKey(Long newsId) {
+		return "news:" + newsId;
+	}
+
+	@Transactional(readOnly = true)
+	public List<NotificationView> getActiveNotifications(User user, String langCode) {
+		return this.notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(user.getId()).stream()
+				.map(notification -> NotificationView.from(notification, langCode))
+				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public List<NotificationView> getReadNotifications(User user, String langCode) {
+		return this.notificationRepository.findByUserIdAndReadTrueOrderByCreatedAtDesc(user.getId()).stream()
+				.map(notification -> NotificationView.from(notification, langCode))
+				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public int getNotificationCount(User user) {
+		return (int) this.notificationRepository.countByUserIdAndReadFalse(user.getId());
 	}
 
 	public String formatBadgeCount(int count) {
@@ -42,41 +110,87 @@ public class NotificationService {
 		return Integer.toString(count);
 	}
 
-	private NotificationView emailVerificationNotification(WebLocale locale) {
-		if (locale == WebLocale.EN) {
-			return new NotificationView(
-					NotificationType.EMAIL_VERIFICATION,
-					"Confirm your email",
-					"Your email address is not verified yet. Open the confirmation link we sent or request a new email.",
-					"/profile/verify-email?lang=en",
-					"Confirm email"
-			);
+	@Transactional
+	public void markAsRead(User user, Long notificationId) {
+		UserNotification notification = this.findOwnedNotification(user, notificationId);
+		if (!notification.isRead()) {
+			notification.markRead();
 		}
-		return new NotificationView(
-				NotificationType.EMAIL_VERIFICATION,
-				"Подтвердите почту",
-				"Адрес почты ещё не подтверждён. Перейдите по ссылке из письма или запросите новое.",
-				"/profile/verify-email?lang=ru",
-				"Подтвердить почту"
-		);
 	}
 
-	private NotificationView avatarSetupNotification(WebLocale locale) {
-		if (locale == WebLocale.EN) {
-			return new NotificationView(
-					NotificationType.AVATAR_SETUP,
-					"Set up your avatar",
-					"Upload a Minecraft skin (64×64) or a ready-made 8×8 avatar for your profile.",
-					"/profile/avatar?lang=en",
-					"Change avatar"
-			);
+	@Transactional
+	public void markAllAsRead(User user) {
+		for (UserNotification notification : this.notificationRepository
+				.findByUserIdAndReadFalseOrderByCreatedAtDesc(user.getId())) {
+			notification.markRead();
 		}
-		return new NotificationView(
-				NotificationType.AVATAR_SETUP,
-				"Настройте аватарку",
-				"Загрузите скин Minecraft 64×64 или готовую аватарку 8×8 для профиля.",
-				"/profile/avatar?lang=ru",
-				"Сменить аватарку"
-		);
+	}
+
+	@Transactional
+	public String openNewsNotification(User user, Long notificationId, String langCode) {
+		UserNotification notification = this.findOwnedNotification(user, notificationId);
+		if (notification.getType() != NotificationType.NEWS) {
+			throw new IllegalArgumentException("Open action is only supported for news notifications");
+		}
+		if (!notification.isRead()) {
+			notification.markRead();
+		}
+		return notification.getActionPath() + "?lang=" + langCode;
+	}
+
+	@Transactional
+	public void deleteNotification(User user, Long notificationId) {
+		this.notificationRepository.delete(this.findOwnedNotification(user, notificationId));
+	}
+
+	private UserNotification findOwnedNotification(User user, Long notificationId) {
+		return this.notificationRepository.findByIdAndUserId(notificationId, user.getId())
+				.orElseThrow(() -> new IllegalArgumentException("Notification not found"));
+	}
+
+	private void ensureNotification(
+			User user,
+			String sourceKey,
+			NotificationType type,
+			String titleRu,
+			String titleEn,
+			String messageRu,
+			String messageEn,
+			String actionPath,
+			String actionLabelRu,
+			String actionLabelEn
+	) {
+		if (this.notificationRepository.findByUserIdAndSourceKey(user.getId(), sourceKey).isPresent()) {
+			return;
+		}
+		this.notificationRepository.save(new UserNotification(
+				user,
+				type,
+				sourceKey,
+				titleRu,
+				titleEn,
+				messageRu,
+				messageEn,
+				actionPath,
+				actionLabelRu,
+				actionLabelEn
+		));
+	}
+
+	private void autoResolve(User user, String sourceKey) {
+		this.notificationRepository.findByUserIdAndSourceKey(user.getId(), sourceKey)
+				.filter(notification -> !notification.isRead())
+				.ifPresent(notification -> notification.markRead());
+	}
+
+	private String truncate(String text, int maxLength) {
+		if (text == null) {
+			return "";
+		}
+		String normalized = text.trim().replaceAll("\\s+", " ");
+		if (normalized.length() <= maxLength) {
+			return normalized;
+		}
+		return normalized.substring(0, maxLength - 1) + "…";
 	}
 }

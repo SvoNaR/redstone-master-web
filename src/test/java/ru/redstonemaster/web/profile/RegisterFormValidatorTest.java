@@ -7,7 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
-import ru.redstonemaster.web.user.UserRepository;
+import ru.redstonemaster.web.user.PendingRegistrationService;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,13 +18,13 @@ import static org.mockito.Mockito.when;
 class RegisterFormValidatorTest {
 
 	@Mock
-	private UserRepository userRepository;
+	private PendingRegistrationService pendingRegistrationService;
 
 	private RegisterFormValidator validator;
 
 	@BeforeEach
 	void setUp() {
-		this.validator = new RegisterFormValidator(this.userRepository);
+		this.validator = new RegisterFormValidator(this.pendingRegistrationService);
 	}
 
 	@Test
@@ -40,7 +40,7 @@ class RegisterFormValidatorTest {
 
 	@Test
 	void rejectsTakenUsername() {
-		when(this.userRepository.existsByUsernameIgnoreCase("player1")).thenReturn(true);
+		when(this.pendingRegistrationService.isUsernameTaken("player1")).thenReturn(true);
 		RegisterForm form = validForm();
 		form.setUsername("player1");
 		Errors errors = new BeanPropertyBindingResult(form, "registerForm");
@@ -52,7 +52,7 @@ class RegisterFormValidatorTest {
 
 	@Test
 	void rejectsTakenEmail() {
-		when(this.userRepository.existsByEmailIgnoreCase("taken@example.com")).thenReturn(true);
+		when(this.pendingRegistrationService.isEmailTaken("taken@example.com")).thenReturn(true);
 		RegisterForm form = validForm();
 		form.setEmail("taken@example.com");
 		Errors errors = new BeanPropertyBindingResult(form, "registerForm");
@@ -75,8 +75,8 @@ class RegisterFormValidatorTest {
 
 	@Test
 	void acceptsValidForm() {
-		when(this.userRepository.existsByUsernameIgnoreCase(anyString())).thenReturn(false);
-		when(this.userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
+		when(this.pendingRegistrationService.isUsernameTaken(anyString())).thenReturn(false);
+		when(this.pendingRegistrationService.isEmailTaken(anyString())).thenReturn(false);
 		RegisterForm form = validForm();
 		Errors errors = new BeanPropertyBindingResult(form, "registerForm");
 
@@ -94,4 +94,3 @@ class RegisterFormValidatorTest {
 		return form;
 	}
 }
-

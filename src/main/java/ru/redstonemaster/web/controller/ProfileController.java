@@ -2,6 +2,7 @@ package ru.redstonemaster.web.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.core.Authentication;
@@ -17,38 +18,55 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.redstonemaster.web.locale.WebLocale;
 import ru.redstonemaster.web.profile.AvatarService;
 import ru.redstonemaster.web.profile.AvatarValidationException;
+import ru.redstonemaster.web.profile.ChangeEmailForm;
+import ru.redstonemaster.web.profile.ChangeEmailFormValidator;
 import ru.redstonemaster.web.profile.LoginForm;
+import ru.redstonemaster.web.profile.PendingChangeEmailFormValidator;
 import ru.redstonemaster.web.profile.ProfileUserView;
 import ru.redstonemaster.web.profile.RegisterForm;
 import ru.redstonemaster.web.profile.RegisterFormValidator;
 import ru.redstonemaster.web.profile.SkinToAvatarService;
 import ru.redstonemaster.web.security.LoginHelper;
 import ru.redstonemaster.web.user.EmailVerificationService;
+import ru.redstonemaster.web.user.PendingRegistration;
+import ru.redstonemaster.web.user.PendingRegistrationLookup;
+import ru.redstonemaster.web.user.PendingRegistrationService;
+import ru.redstonemaster.web.user.PendingRegistrationSession;
 import ru.redstonemaster.web.user.User;
 import ru.redstonemaster.web.user.UserService;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Optional;
 
 @Controller
 public class ProfileController {
 
 	private final UserService userService;
+	private final PendingRegistrationService pendingRegistrationService;
 	private final EmailVerificationService emailVerificationService;
 	private final RegisterFormValidator registerFormValidator;
+	private final ChangeEmailFormValidator changeEmailFormValidator;
+	private final PendingChangeEmailFormValidator pendingChangeEmailFormValidator;
 	private final LoginHelper loginHelper;
 	private final AvatarService avatarService;
 
 	public ProfileController(
 			UserService userService,
+			PendingRegistrationService pendingRegistrationService,
 			EmailVerificationService emailVerificationService,
 			RegisterFormValidator registerFormValidator,
+			ChangeEmailFormValidator changeEmailFormValidator,
+			PendingChangeEmailFormValidator pendingChangeEmailFormValidator,
 			LoginHelper loginHelper,
 			AvatarService avatarService
 	) {
 		this.userService = userService;
+		this.pendingRegistrationService = pendingRegistrationService;
 		this.emailVerificationService = emailVerificationService;
 		this.registerFormValidator = registerFormValidator;
+		this.changeEmailFormValidator = changeEmailFormValidator;
+		this.pendingChangeEmailFormValidator = pendingChangeEmailFormValidator;
 		this.loginHelper = loginHelper;
 		this.avatarService = avatarService;
 	}
@@ -60,6 +78,7 @@ public class ProfileController {
 			@RequestParam(name = "error", required = false) String error,
 			@RequestParam(name = "login", required = false) String loginSuccess,
 			@RequestParam(name = "logout", required = false) String logoutSuccess,
+			@RequestParam(name = "registrationExpired", required = false) String registrationExpired,
 			Authentication authentication,
 			Model model
 	) {
@@ -72,6 +91,7 @@ public class ProfileController {
 			User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
 			model.addAttribute("profileUser", ProfileUserView.from(user, this.avatarService));
 			model.addAttribute("showProfileIntro", !user.isProfileIntroSeen());
+			model.addAttribute("pendingEmail", user.getPendingEmail());
 			return "profile/index";
 		}
 
@@ -84,11 +104,40 @@ public class ProfileController {
 		model.addAttribute("loginError", "login".equals(error));
 		model.addAttribute("loginSuccess", loginSuccess != null);
 		model.addAttribute("logoutSuccess", logoutSuccess != null);
+		model.addAttribute("registrationExpired", registrationExpired != null);
 		return "profile/guest";
 	}
 
-	@GetMapping("/profile/verify-email")
-	public String verifyEmailPage(
+	@GetMapping("/profile/pending-verification")
+	public String pendingVerificationPage(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			HttpSession session,
+			Model model
+	) {
+		PendingRegistrationLookup lookup = this.lookupPendingRegistration(session);
+		if (lookup.pending().isEmpty()) {
+			if (lookup.wasExpired()) {
+				return "redirect:/profile?lang=" + langCode + "&tab=register&registrationExpired=1";
+			}
+			return "redirect:/profile?lang=" + langCode + "&tab=register";
+		}
+		PendingRegistration pending = lookup.pending().get();
+		WebLocale locale = WebLocale.fromCode(langCode);
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Confirm your email" : "Подтверждение почты");
+		model.addAttribute("pendingUsername", pending.getUsername());
+		model.addAttribute("pendingEmail", pending.getEmail());
+		model.addAttribute("verificationExpiresAt", pending.getVerificationExpiresAt());
+		model.addAttribute("mailConfigured", this.emailVerificationService.isMailConfigured());
+		if (!model.containsAttribute("changeEmailForm")) {
+			ChangeEmailForm form = new ChangeEmailForm();
+			form.setEmail(pending.getEmail());
+			model.addAttribute("changeEmailForm", form);
+		}
+		return "profile/pending-verification";
+	}
+
+	@GetMapping("/profile/change-email")
+	public String changeEmailPage(
 			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
 			Authentication authentication,
 			Model model
@@ -99,10 +148,50 @@ public class ProfileController {
 		}
 		WebLocale locale = WebLocale.fromCode(langCode);
 		User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
-		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Confirm your email" : "Подтверждение почты");
+		if (!model.containsAttribute("changeEmailForm")) {
+			ChangeEmailForm form = new ChangeEmailForm();
+			form.setEmail(user.getPendingEmail() != null ? user.getPendingEmail() : user.getEmail());
+			model.addAttribute("changeEmailForm", form);
+		}
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Change email" : "Смена почты");
 		model.addAttribute("profileUser", ProfileUserView.from(user, this.avatarService));
-		model.addAttribute("mailConfigured", this.emailVerificationService.isMailConfigured());
-		return "profile/verify-email";
+		model.addAttribute("pendingEmail", user.getPendingEmail());
+		return "profile/change-email";
+	}
+
+	@PostMapping("/profile/change-email")
+	public String changeEmail(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			@Valid @ModelAttribute("changeEmailForm") ChangeEmailForm form,
+			BindingResult bindingResult,
+			Authentication authentication,
+			Model model,
+			RedirectAttributes redirectAttributes
+	) {
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return "redirect:/profile?lang=" + langCode;
+		}
+		LocaleContextHolder.setLocale(Locale.forLanguageTag(WebLocale.fromCode(langCode).getCode()));
+		User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
+		this.changeEmailFormValidator.validate(form, bindingResult, user);
+		if (bindingResult.hasErrors()) {
+			WebLocale locale = WebLocale.fromCode(langCode);
+			model.addAttribute("pageTitle", locale == WebLocale.EN ? "Change email" : "Смена почты");
+			model.addAttribute("profileUser", ProfileUserView.from(user, this.avatarService));
+			model.addAttribute("pendingEmail", user.getPendingEmail());
+			return "profile/change-email";
+		}
+
+		this.userService.changeEmail(user, form.getEmail());
+		this.emailVerificationService.sendPendingEmailChangeEmail(user, langCode);
+		if (!this.emailVerificationService.isMailConfigured()) {
+			redirectAttributes.addFlashAttribute(
+					"verificationUrl",
+					this.emailVerificationService.buildPendingEmailChangeUrl(user, langCode)
+			);
+		}
+		redirectAttributes.addFlashAttribute("emailChangePending", true);
+		return "redirect:/profile?lang=" + langCode;
 	}
 
 	@GetMapping("/profile/avatar")
@@ -131,8 +220,7 @@ public class ProfileController {
 			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
 			@Valid @ModelAttribute("registerForm") RegisterForm form,
 			BindingResult bindingResult,
-			HttpServletRequest request,
-			HttpServletResponse response,
+			HttpSession session,
 			Model model,
 			RedirectAttributes redirectAttributes
 	) {
@@ -145,16 +233,78 @@ public class ProfileController {
 			return "profile/guest";
 		}
 
-		User user = this.userService.register(form);
-		this.emailVerificationService.sendVerificationEmail(user, langCode);
-		this.loginHelper.login(user.getUsername(), request, response);
+		PendingRegistration pending = this.pendingRegistrationService.startRegistration(form);
+		this.emailVerificationService.sendRegistrationVerificationEmail(pending, langCode);
+		session.setAttribute(PendingRegistrationSession.SESSION_KEY, pending.getId());
 		if (!this.emailVerificationService.isMailConfigured()) {
 			redirectAttributes.addFlashAttribute(
 					"verificationUrl",
-					this.emailVerificationService.buildVerificationUrl(user, langCode)
+					this.emailVerificationService.buildRegistrationVerificationUrl(pending, langCode)
 			);
 		}
-		return "redirect:/profile/verify-email?lang=" + langCode;
+		return "redirect:/profile/pending-verification?lang=" + langCode;
+	}
+
+	@PostMapping("/profile/pending-verification/change-email")
+	public String changePendingEmail(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			@Valid @ModelAttribute("changeEmailForm") ChangeEmailForm form,
+			BindingResult bindingResult,
+			HttpSession session,
+			Model model,
+			RedirectAttributes redirectAttributes
+	) {
+		PendingRegistrationLookup lookup = this.lookupPendingRegistration(session);
+		if (lookup.pending().isEmpty()) {
+			if (lookup.wasExpired()) {
+				return "redirect:/profile?lang=" + langCode + "&tab=register&registrationExpired=1";
+			}
+			return "redirect:/profile?lang=" + langCode + "&tab=register";
+		}
+		PendingRegistration pending = lookup.pending().get();
+		LocaleContextHolder.setLocale(Locale.forLanguageTag(WebLocale.fromCode(langCode).getCode()));
+		this.pendingChangeEmailFormValidator.validate(form, bindingResult, pending);
+		if (bindingResult.hasErrors()) {
+			this.populatePendingVerificationModel(model, pending, langCode);
+			return "profile/pending-verification";
+		}
+
+		this.pendingRegistrationService.changeEmail(pending, form.getEmail());
+		this.emailVerificationService.sendRegistrationVerificationEmail(pending, langCode);
+		if (!this.emailVerificationService.isMailConfigured()) {
+			redirectAttributes.addFlashAttribute(
+					"verificationUrl",
+					this.emailVerificationService.buildRegistrationVerificationUrl(pending, langCode)
+			);
+		}
+		redirectAttributes.addFlashAttribute("emailChanged", true);
+		return "redirect:/profile/pending-verification?lang=" + langCode;
+	}
+
+	@PostMapping("/profile/pending-verification/resend")
+	public String resendPendingVerification(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			HttpSession session,
+			RedirectAttributes redirectAttributes
+	) {
+		PendingRegistrationLookup lookup = this.lookupPendingRegistration(session);
+		if (lookup.pending().isEmpty()) {
+			if (lookup.wasExpired()) {
+				return "redirect:/profile?lang=" + langCode + "&tab=register&registrationExpired=1";
+			}
+			return "redirect:/profile?lang=" + langCode + "&tab=register";
+		}
+		PendingRegistration pending = lookup.pending().get();
+		this.pendingRegistrationService.issueVerificationToken(pending);
+		this.emailVerificationService.sendRegistrationVerificationEmail(pending, langCode);
+		if (!this.emailVerificationService.isMailConfigured()) {
+			redirectAttributes.addFlashAttribute(
+					"verificationUrl",
+					this.emailVerificationService.buildRegistrationVerificationUrl(pending, langCode)
+			);
+		}
+		redirectAttributes.addFlashAttribute("resent", true);
+		return "redirect:/profile/pending-verification?lang=" + langCode;
 	}
 
 	@PostMapping("/profile/avatar")
@@ -203,36 +353,41 @@ public class ProfileController {
 	public String verifyEmail(
 			@RequestParam(name = "token") String token,
 			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			HttpServletRequest request,
+			HttpServletResponse response,
+			HttpSession session,
 			Model model
 	) {
+		Optional<String> usernameOptional = this.userService.verifyEmail(token);
+		if (usernameOptional.isPresent()) {
+			session.removeAttribute(PendingRegistrationSession.SESSION_KEY);
+			this.loginHelper.login(usernameOptional.get(), request, response);
+			return "redirect:/profile?lang=" + langCode;
+		}
 		WebLocale locale = WebLocale.fromCode(langCode);
 		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Email verification" : "Подтверждение почты");
-		model.addAttribute("verified", this.userService.verifyEmail(token));
+		model.addAttribute("verified", false);
 		return "profile/verify";
 	}
 
-	@PostMapping("/profile/resend-verification")
-	public String resendVerification(
-			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
-			Authentication authentication,
-			RedirectAttributes redirectAttributes
-	) {
-		if (authentication == null || !authentication.isAuthenticated()) {
-			return "redirect:/profile?lang=" + langCode;
+	private PendingRegistrationLookup lookupPendingRegistration(HttpSession session) {
+		Object rawId = session.getAttribute(PendingRegistrationSession.SESSION_KEY);
+		if (!(rawId instanceof Long pendingId)) {
+			return PendingRegistrationLookup.notFound();
 		}
-		User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
-		if (user.isEmailVerified()) {
-			return "redirect:/profile?lang=" + langCode;
+		PendingRegistrationLookup lookup = this.pendingRegistrationService.lookupById(pendingId);
+		if (lookup.pending().isEmpty()) {
+			session.removeAttribute(PendingRegistrationSession.SESSION_KEY);
 		}
-		this.userService.issueVerificationToken(user);
-		this.emailVerificationService.sendVerificationEmail(user, langCode);
-		if (!this.emailVerificationService.isMailConfigured()) {
-			redirectAttributes.addFlashAttribute(
-					"verificationUrl",
-					this.emailVerificationService.buildVerificationUrl(user, langCode)
-			);
-		}
-		redirectAttributes.addFlashAttribute("resent", true);
-		return "redirect:/profile/verify-email?lang=" + langCode;
+		return lookup;
+	}
+
+	private void populatePendingVerificationModel(Model model, PendingRegistration pending, String langCode) {
+		WebLocale locale = WebLocale.fromCode(langCode);
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Confirm your email" : "Подтверждение почты");
+		model.addAttribute("pendingUsername", pending.getUsername());
+		model.addAttribute("pendingEmail", pending.getEmail());
+		model.addAttribute("verificationExpiresAt", pending.getVerificationExpiresAt());
+		model.addAttribute("mailConfigured", this.emailVerificationService.isMailConfigured());
 	}
 }

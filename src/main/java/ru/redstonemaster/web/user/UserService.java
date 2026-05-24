@@ -1,11 +1,13 @@
 package ru.redstonemaster.web.user;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.redstonemaster.web.notification.UserNotificationRepository;
 import ru.redstonemaster.web.profile.AvatarService;
-import ru.redstonemaster.web.profile.RegisterForm;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -17,9 +19,13 @@ import java.util.Optional;
 @Service
 public class UserService {
 
+	public static final int ADMIN_PAGE_SIZE = 10;
+
 	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private final UserRepository userRepository;
+	private final UserNotificationRepository notificationRepository;
+	private final PendingRegistrationService pendingRegistrationService;
 	private final PasswordEncoder passwordEncoder;
 	private final AvatarService avatarService;
 	private final String adminUsername;
@@ -28,6 +34,8 @@ public class UserService {
 
 	public UserService(
 			UserRepository userRepository,
+			UserNotificationRepository notificationRepository,
+			PendingRegistrationService pendingRegistrationService,
 			PasswordEncoder passwordEncoder,
 			AvatarService avatarService,
 			@Value("${app.admin.username}") String adminUsername,
@@ -35,6 +43,8 @@ public class UserService {
 			@Value("${app.admin.password}") String adminPassword
 	) {
 		this.userRepository = userRepository;
+		this.notificationRepository = notificationRepository;
+		this.pendingRegistrationService = pendingRegistrationService;
 		this.passwordEncoder = passwordEncoder;
 		this.avatarService = avatarService;
 		this.adminUsername = adminUsername;
@@ -43,38 +53,43 @@ public class UserService {
 	}
 
 	@Transactional
-	public User register(RegisterForm form) {
-		User user = new User(
-				form.getUsername().trim(),
-				form.getEmail().trim().toLowerCase(),
-				this.passwordEncoder.encode(form.getPassword())
-		);
-		this.issueVerificationToken(user);
-		this.avatarService.assignRandomDefaultAvatar(user);
-		return this.userRepository.save(user);
+	public void changeEmail(User user, String newEmail) {
+		String normalized = newEmail.trim().toLowerCase();
+		if (normalized.equalsIgnoreCase(user.getEmail())) {
+			throw new IllegalArgumentException("Email unchanged");
+		}
+		user.setPendingEmail(normalized);
+		this.issuePendingEmailToken(user);
+		this.userRepository.save(user);
 	}
 
 	@Transactional
-	public void issueVerificationToken(User user) {
-		user.setEmailVerificationToken(this.newToken());
-		user.setEmailVerificationExpiresAt(Instant.now().plus(24, ChronoUnit.HOURS));
+	public void issuePendingEmailToken(User user) {
+		user.setPendingEmailVerificationToken(this.newToken());
+		user.setPendingEmailVerificationExpiresAt(Instant.now().plus(24, ChronoUnit.HOURS));
 	}
 
 	@Transactional
-	public boolean verifyEmail(String token) {
-		Optional<User> userOptional = this.userRepository.findByEmailVerificationToken(token);
+	public Optional<String> verifyEmail(String token) {
+		Optional<User> completedRegistration = this.pendingRegistrationService.completeRegistration(token);
+		if (completedRegistration.isPresent()) {
+			return Optional.of(completedRegistration.get().getUsername());
+		}
+
+		Optional<User> userOptional = this.userRepository.findByPendingEmailVerificationToken(token);
 		if (userOptional.isEmpty()) {
-			return false;
+			return Optional.empty();
 		}
 		User user = userOptional.get();
-		if (user.getEmailVerificationExpiresAt() == null
-				|| user.getEmailVerificationExpiresAt().isBefore(Instant.now())) {
-			return false;
+		if (user.getPendingEmailVerificationExpiresAt() == null
+				|| user.getPendingEmailVerificationExpiresAt().isBefore(Instant.now())
+				|| user.getPendingEmail() == null || user.getPendingEmail().isBlank()) {
+			return Optional.empty();
 		}
-		user.setEmailVerified(true);
-		user.setEmailVerificationToken(null);
-		user.setEmailVerificationExpiresAt(null);
-		return true;
+		user.setEmail(user.getPendingEmail());
+		user.clearPendingEmailChange();
+		this.userRepository.save(user);
+		return Optional.of(user.getUsername());
 	}
 
 	public Optional<User> findByLogin(String login) {
@@ -87,6 +102,25 @@ public class UserService {
 
 	public List<User> findUsersByRole(UserRole role) {
 		return this.userRepository.findByRoleOrderByUsernameAsc(role);
+	}
+
+	@Transactional(readOnly = true)
+	public Page<User> findUsersByRole(UserRole role, String search, int page) {
+		String normalizedSearch = search == null ? "" : search.trim();
+		int safePage = Math.max(page, 1);
+		Page<User> result = this.userRepository.findByRoleAndSearch(
+				role,
+				normalizedSearch,
+				PageRequest.of(safePage - 1, ADMIN_PAGE_SIZE)
+		);
+		if (result.getTotalPages() > 0 && safePage > result.getTotalPages()) {
+			return this.userRepository.findByRoleAndSearch(
+					role,
+					normalizedSearch,
+					PageRequest.of(result.getTotalPages() - 1, ADMIN_PAGE_SIZE)
+			);
+		}
+		return result;
 	}
 
 	@Transactional
@@ -111,6 +145,10 @@ public class UserService {
 
 	@Transactional
 	public void ensureAdminExists() {
+		this.notificationRepository.deleteForUnverifiedUsers();
+		this.userRepository.deleteByEmailVerifiedFalse();
+		this.pendingRegistrationService.purgeExpired();
+
 		var existing = this.userRepository.findByUsernameIgnoreCase(this.adminUsername);
 		if (existing.isPresent()) {
 			User admin = existing.get();

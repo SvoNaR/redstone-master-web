@@ -35,49 +35,100 @@ public class EmailVerificationService {
 		return this.mailEnabled && this.mailSender.isPresent();
 	}
 
-	public String buildVerificationUrl(User user, String langCode) {
-		return this.baseUrl + "/profile/verify?token=" + user.getEmailVerificationToken() + "&lang=" + langCode;
+	public String buildRegistrationVerificationUrl(PendingRegistration pending, String langCode) {
+		return this.baseUrl + "/profile/verify?token=" + pending.getVerificationToken() + "&lang=" + langCode;
 	}
 
-	public void sendVerificationEmail(User user, String langCode) {
-		String url = this.buildVerificationUrl(user, langCode);
+	public String buildPendingEmailChangeUrl(User user, String langCode) {
+		return this.baseUrl + "/profile/verify?token=" + user.getPendingEmailVerificationToken() + "&lang=" + langCode;
+	}
+
+	public void sendRegistrationVerificationEmail(PendingRegistration pending, String langCode) {
+		this.sendEmail(
+				pending.getEmail(),
+				pending.getUsername(),
+				this.buildRegistrationVerificationUrl(pending, langCode),
+				langCode,
+				true
+		);
+	}
+
+	public void sendPendingEmailChangeEmail(User user, String langCode) {
+		this.sendEmail(
+				user.getPendingEmail(),
+				user.getUsername(),
+				this.buildPendingEmailChangeUrl(user, langCode),
+				langCode,
+				false
+		);
+	}
+
+	private void sendEmail(String to, String username, String url, String langCode, boolean registration) {
 		boolean russian = "ru".equals(langCode);
 		String subject = russian
 				? "Подтверждение аккаунта — Redstone Master"
 				: "Confirm your account — Redstone Master";
 		String body = russian
+				? (registration
 				? """
 				Здравствуйте, %s!
 
 				Спасибо за регистрацию на сайте Redstone Master.
-				Чтобы подтвердить почту и активировать аккаунт, перейдите по ссылке:
+				Чтобы подтвердить почту и создать аккаунт, перейдите по ссылке:
 
 				%s
 
-				Ссылка действует 24 часа. Если вы не регистрировались — проигнорируйте это письмо.
-				""".formatted(user.getUsername(), url)
+				Ссылка действует 24 часа.
+				Если вы не подтвердите почту в течение этого срока, данные регистрации будут удалены.
+				Если это не вы, просто проигнорируйте данное письмо.
+				""".formatted(username, url)
 				: """
+				Здравствуйте, %s!
+
+				Вы запросили смену адреса почты на сайте Redstone Master.
+				Чтобы подтвердить новый адрес, перейдите по ссылке:
+
+				%s
+
+				Ссылка действует 24 часа.
+				Если это не вы, просто проигнорируйте данное письмо.
+				""".formatted(username, url))
+				: (registration
+				? """
 				Hello, %s!
 
 				Thank you for signing up at Redstone Master.
-				To verify your email and activate your account, open this link:
+				To verify your email and create your account, open this link:
 
 				%s
 
-				The link is valid for 24 hours. If you did not sign up, please ignore this email.
-				""".formatted(user.getUsername(), url);
+				The link is valid for 24 hours.
+				If you do not confirm within this time, your registration data will be deleted.
+				If this was not you, please ignore this email.
+				""".formatted(username, url)
+				: """
+				Hello, %s!
+
+				You requested an email change at Redstone Master.
+				To confirm your new address, open this link:
+
+				%s
+
+				The link is valid for 24 hours.
+				If this was not you, please ignore this email.
+				""".formatted(username, url));
 
 		if (this.isMailConfigured()) {
 			SimpleMailMessage message = new SimpleMailMessage();
 			message.setFrom(this.fromAddress);
-			message.setTo(user.getEmail());
+			message.setTo(to);
 			message.setSubject(subject);
 			message.setText(body);
 			this.mailSender.get().send(message);
-			LOGGER.info("Verification email sent to {}", user.getEmail());
+			LOGGER.info("Verification email sent to {}", to);
 			return;
 		}
 
-		LOGGER.warn("SMTP is disabled (app.mail.enabled=false). Verification link for {}: {}", user.getEmail(), url);
+		LOGGER.warn("SMTP is disabled (app.mail.enabled=false). Verification link for {}: {}", to, url);
 	}
 }

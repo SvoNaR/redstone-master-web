@@ -50,4 +50,4 @@ class ProfileRegistrationValidationTest {
 				.andExpect(content().string(containsString("зарезервирован")));
 	}
 }
-
+

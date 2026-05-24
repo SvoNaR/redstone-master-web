@@ -17,6 +17,8 @@ public class SecurityConfig {
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.authorizeHttpRequests(auth -> auth
+				.requestMatchers("/news/publish").hasAnyRole("MODERATOR", "ADMIN")
+				.requestMatchers("/news/*/edit", "/news/*/delete").hasAnyRole("MODERATOR", "ADMIN")
 				.requestMatchers(
 						"/css/**",
 						"/mod-assets/**",
@@ -24,14 +26,18 @@ public class SecurityConfig {
 						"/api/**",
 						"/profile",
 						"/profile/register",
-						"/profile/verify"
+						"/profile/verify",
+						"/profile/pending-verification",
+						"/profile/pending-verification/**",
+						"/news",
+						"/news/*"
 				).permitAll()
 				.requestMatchers(
-						"/profile/verify-email",
 						"/profile/avatar",
-						"/profile/resend-verification",
+						"/profile/change-email",
 						"/profile/intro-seen",
-						"/notifications"
+						"/notifications",
+						"/notifications/*"
 				).authenticated()
 				.requestMatchers("/moderation/**").hasAnyRole("MODERATOR", "ADMIN")
 				.requestMatchers("/admin/**").hasRole("ADMIN")

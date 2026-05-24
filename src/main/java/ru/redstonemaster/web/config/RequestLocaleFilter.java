@@ -12,10 +12,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import ru.redstonemaster.web.locale.WebLocale;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class RequestLocaleFilter extends OncePerRequestFilter {
 
 	@Override
@@ -24,6 +25,8 @@ public class RequestLocaleFilter extends OncePerRequestFilter {
 			HttpServletResponse response,
 			FilterChain filterChain
 	) throws ServletException, IOException {
+		request.setCharacterEncoding(StandardCharsets.UTF_8.name());
+		response.setCharacterEncoding(StandardCharsets.UTF_8.name());
 		String lang = request.getParameter("lang");
 		if (lang != null && !lang.isBlank()) {
 			LocaleContextHolder.setLocale(Locale.forLanguageTag(WebLocale.fromCode(lang).getCode()));
@@ -35,4 +38,4 @@ public class RequestLocaleFilter extends OncePerRequestFilter {
 		}
 	}
 }
-
+
