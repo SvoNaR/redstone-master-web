@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head">
+	<meta charset="UTF-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<title th:text="${pageTitle} + ' — ' + ${mod.name}">Redstone Master</title>
+	<link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<header class="site-header" th:fragment="header">
+	<div class="site-header__inner">
+		<a class="brand" th:href="@{/(lang=${locale.code})}" th:text="${mod.name}">Redstone Master</a>
+		<nav class="site-nav">
+			<a th:href="@{/(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Home' : 'Главная'}">Главная</a>
+			<a th:href="@{/tutorial(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Tutorial' : 'Обучение'}">Обучение</a>
+			<a th:href="@{/settings(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Settings' : 'Настройки'}">Настройки</a>
+		</nav>
+		<div class="lang-switch">
+			<a th:classappend="${locale.code == 'ru' ? ' active' : ''}"
+			   th:href="@{${currentPath}(lang='ru')}">RU</a>
+			<a th:classappend="${locale.code == 'en' ? ' active' : ''}"
+			   th:href="@{${currentPath}(lang='en')}">EN</a>
+		</div>
+	</div>
+</header>
+
+<footer class="site-footer" th:fragment="footer">
+	<p>
+		<span th:text="${mod.name}">Redstone Master</span>
+		<span th:text="' v' + ${mod.version}">v1.0.0</span>
+		·
+		<a th:href="${mod.repositoryUrl}" th:text="${mod.repositoryUrl}">GitHub</a>
+	</p>
+</footer>
+</body>
+</html>

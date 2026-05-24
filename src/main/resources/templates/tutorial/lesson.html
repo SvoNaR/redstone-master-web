@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main class="page">
+	<p class="breadcrumb">
+		<a th:href="@{/tutorial(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Tutorial' : 'Обучение'}"></a>
+		→
+		<a th:href="@{/tutorial/{id}(id=${section.id()}, lang=${locale.code})}" th:text="${section.title()}"></a>
+		→
+		<span th:text="${lesson.title()}"></span>
+	</p>
+
+	<h1 th:text="${lesson.title()}">Урок</h1>
+
+	<div class="image-row" th:if="${!lesson.imageUrls().isEmpty()}">
+		<img th:each="imageUrl : ${lesson.imageUrls()}" th:src="${imageUrl}" alt="" class="pixel-art"/>
+	</div>
+
+	<article class="lesson-body preformatted" th:utext="${@textLinkService.toHtml(lesson.body(), locale.code)}"></article>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>
