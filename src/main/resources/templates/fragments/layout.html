@@ -12,13 +12,30 @@
 	<div class="site-header__inner">
 		<a class="brand" th:href="@{/(lang=${locale.code})}" th:text="${mod.name}">Redstone Master</a>
 		<nav class="site-nav">
-			<a th:href="@{/(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Home' : 'Главная'}">Главная</a>
-			<a th:href="@{/tutorial(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Tutorial' : 'Обучение'}">Обучение</a>
-			<a th:href="@{/settings(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Settings' : 'Настройки'}">Настройки</a>
+			<a class="site-nav-link"
+			   th:classappend="${currentPath == '/' || currentPath == '' ? ' active' : ''}"
+			   th:href="@{/(lang=${locale.code})}"
+			   th:text="${locale.code == 'en' ? 'Home' : 'Главная'}">Главная</a>
+			<a class="site-nav-link"
+			   th:classappend="${currentPath.startsWith('/news') ? ' active' : ''}"
+			   th:href="@{/news(lang=${locale.code})}"
+			   th:text="${locale.code == 'en' ? 'News' : 'Новости'}">Новости</a>
+			<a class="site-nav-link"
+			   th:classappend="${currentPath.startsWith('/tutorial') ? ' active' : ''}"
+			   th:href="@{/tutorial(lang=${locale.code})}"
+			   th:text="${locale.code == 'en' ? 'Tutorial' : 'Обучение'}">Обучение</a>
+			<a class="site-nav-link"
+			   th:classappend="${currentPath.startsWith('/settings') ? ' active' : ''}"
+			   th:href="@{/settings(lang=${locale.code})}"
+			   th:text="${locale.code == 'en' ? 'Settings' : 'Настройки'}">Настройки</a>
 			<a sec:authorize="hasAnyRole('MODERATOR','ADMIN')"
+			   class="site-nav-link"
+			   th:classappend="${currentPath.startsWith('/moderation') ? ' active' : ''}"
 			   th:href="@{/moderation(lang=${locale.code})}"
 			   th:text="${locale.code == 'en' ? 'Moderation' : 'Модерация'}">Модерация</a>
 			<a sec:authorize="hasRole('ADMIN')"
+			   class="site-nav-link"
+			   th:classappend="${currentPath.startsWith('/admin') ? ' active' : ''}"
 			   th:href="@{/admin(lang=${locale.code})}"
 			   th:text="${locale.code == 'en' ? 'Administration' : 'Администрация'}">Администрация</a>
 		</nav>
@@ -61,6 +78,20 @@
 		·
 		<a th:href="${mod.repositoryUrl}" th:text="${mod.repositoryUrl}">GitHub</a>
 	</p>
+
+	<div class="confirm-dialog" id="confirm-dialog" hidden aria-hidden="true">
+		<div class="confirm-dialog__backdrop" data-confirm-cancel></div>
+		<div class="confirm-dialog__panel" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-message">
+			<p class="confirm-dialog__message" id="confirm-dialog-message"></p>
+			<div class="confirm-dialog__actions">
+				<button type="button" class="btn btn--primary" data-confirm-accept
+						th:text="${locale.code == 'en' ? 'Confirm' : 'Подтвердить'}">Подтвердить</button>
+				<button type="button" class="btn btn--secondary" data-confirm-cancel
+						th:text="${locale.code == 'en' ? 'Cancel' : 'Отмена'}">Отмена</button>
+			</div>
+		</div>
+	</div>
+	<script th:src="@{/js/confirm-dialog.js}"></script>
 </footer>
 </body>
 </html>

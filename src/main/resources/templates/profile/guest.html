@@ -17,6 +17,11 @@
 		<div class="alert alert--error" th:if="${loginError}">
 			<span th:text="${locale.code == 'en' ? 'Invalid username/email or password.' : 'Неверный никнейм, почта или пароль.'}"></span>
 		</div>
+		<div class="alert alert--warn" th:if="${registrationExpired}">
+			<span th:text="${locale.code == 'en'
+				? 'The confirmation period has expired and your registration data was deleted. Please sign up again.'
+				: 'Срок подтверждения истёк, данные регистрации удалены. Зарегистрируйтесь снова.'}"></span>
+		</div>
 
 		<div class="profile-tabs">
 			<a th:classappend="${activeTab == 'login' ? ' active' : ''}"

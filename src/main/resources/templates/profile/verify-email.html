@@ -21,7 +21,10 @@
 					: 'Письмо с подтверждением отправлено повторно. Проверьте почту.'}"></p>
 			</div>
 
-			<p th:text="${locale.code == 'en'
+			<p th:if="${emailChanged}" th:text="${locale.code == 'en'
+				? 'Your email has been updated. We sent a confirmation email to:'
+				: 'Почта изменена. На новый адрес отправлено письмо с подтверждением:'}"></p>
+			<p th:unless="${emailChanged}" th:text="${locale.code == 'en'
 				? 'Your account has been created. We sent a confirmation email to:'
 				: 'Аккаунт создан. На почту отправлено письмо с подтверждением:'}"></p>
 			<p class="verify-email-address" th:text="${profileUser.email()}"></p>
