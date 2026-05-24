@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main class="page">
+	<h1 th:text="${pageTitle}">Администрация</h1>
+
+	<div class="alert alert--success" th:if="${adminMessage == 'promoted'}">
+		<span th:text="${locale.code == 'en' ? 'User promoted to moderator.' : 'Пользователь назначен модератором.'}"></span>
+	</div>
+	<div class="alert alert--success" th:if="${adminMessage == 'demoted'}">
+		<span th:text="${locale.code == 'en' ? 'Moderator demoted to user.' : 'Модератор снят с роли.'}"></span>
+	</div>
+	<div class="alert alert--error" th:if="${adminError}" th:text="${adminError}"></div>
+
+	<section class="section-block">
+		<h2 th:text="${locale.code == 'en' ? 'Assign moderators' : 'Назначение модераторов'}">Назначение модераторов</h2>
+		<p class="muted" th:text="${locale.code == 'en'
+			? 'Promote regular users to moderators. They will get access to the Moderation section.'
+			: 'Назначайте обычных пользователей модераторами — им станет доступен раздел «Модерация».'}"></p>
+
+		<table class="data-table data-table--wide" th:if="${!regularUsers.isEmpty()}">
+			<thead>
+			<tr>
+				<th th:text="${locale.code == 'en' ? 'Username' : 'Никнейм'}">Никнейм</th>
+				<th th:text="${locale.code == 'en' ? 'Email' : 'Почта'}">Почта</th>
+				<th></th>
+			</tr>
+			</thead>
+			<tbody>
+			<tr th:each="user : ${regularUsers}">
+				<td th:text="${user.username()}"></td>
+				<td th:text="${user.email()}"></td>
+				<td>
+					<form th:action="@{/admin/promote}" method="post" class="inline-form">
+						<input type="hidden" name="userId" th:value="${user.id()}"/>
+						<input type="hidden" name="lang" th:value="${locale.code}"/>
+						<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+						<button type="submit" class="btn btn--small btn--primary"
+								th:text="${locale.code == 'en' ? 'Make moderator' : 'Сделать модератором'}"></button>
+					</form>
+				</td>
+			</tr>
+			</tbody>
+		</table>
+		<p class="muted" th:if="${regularUsers.isEmpty()}"
+		   th:text="${locale.code == 'en' ? 'No regular users yet.' : 'Обычных пользователей пока нет.'}"></p>
+	</section>
+
+	<section class="section-block">
+		<h2 th:text="${locale.code == 'en' ? 'Current moderators' : 'Текущие модераторы'}">Текущие модераторы</h2>
+		<table class="data-table data-table--wide" th:if="${!moderators.isEmpty()}">
+			<thead>
+			<tr>
+				<th th:text="${locale.code == 'en' ? 'Username' : 'Никнейм'}">Никнейм</th>
+				<th th:text="${locale.code == 'en' ? 'Email' : 'Почта'}">Почта</th>
+				<th></th>
+			</tr>
+			</thead>
+			<tbody>
+			<tr th:each="user : ${moderators}">
+				<td th:text="${user.username()}"></td>
+				<td th:text="${user.email()}"></td>
+				<td>
+					<form th:action="@{/admin/demote}" method="post" class="inline-form">
+						<input type="hidden" name="userId" th:value="${user.id()}"/>
+						<input type="hidden" name="lang" th:value="${locale.code}"/>
+						<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+						<button type="submit" class="btn btn--small btn--secondary"
+								th:text="${locale.code == 'en' ? 'Remove role' : 'Снять роль'}"></button>
+					</form>
+				</td>
+			</tr>
+			</tbody>
+		</table>
+		<p class="muted" th:if="${moderators.isEmpty()}"
+		   th:text="${locale.code == 'en' ? 'No moderators assigned.' : 'Модераторы не назначены.'}"></p>
+	</section>
+
+	<section class="profile-card placeholder-section">
+		<h2 th:text="${locale.code == 'en' ? 'Other administration (planned)' : 'Прочая администрация (планируется)'}"></h2>
+		<ul class="placeholder-list">
+			<li th:text="${locale.code == 'en' ? 'Site settings and feature flags' : 'Настройки сайта и переключатели функций'}"></li>
+			<li th:text="${locale.code == 'en' ? 'User bans and role management beyond moderators' : 'Блокировки и управление ролями шире модераторов'}"></li>
+			<li th:text="${locale.code == 'en' ? 'Statistics: registrations, comments, activity' : 'Статистика: регистрации, комментарии, активность'}"></li>
+		</ul>
+	</section>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

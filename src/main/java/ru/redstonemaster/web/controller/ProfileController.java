@@ -1,0 +1,238 @@
+package ru.redstonemaster.web.controller;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ru.redstonemaster.web.locale.WebLocale;
+import ru.redstonemaster.web.profile.AvatarService;
+import ru.redstonemaster.web.profile.AvatarValidationException;
+import ru.redstonemaster.web.profile.LoginForm;
+import ru.redstonemaster.web.profile.ProfileUserView;
+import ru.redstonemaster.web.profile.RegisterForm;
+import ru.redstonemaster.web.profile.RegisterFormValidator;
+import ru.redstonemaster.web.profile.SkinToAvatarService;
+import ru.redstonemaster.web.security.LoginHelper;
+import ru.redstonemaster.web.user.EmailVerificationService;
+import ru.redstonemaster.web.user.User;
+import ru.redstonemaster.web.user.UserService;
+
+import java.io.IOException;
+import java.util.Locale;
+
+@Controller
+public class ProfileController {
+
+	private final UserService userService;
+	private final EmailVerificationService emailVerificationService;
+	private final RegisterFormValidator registerFormValidator;
+	private final LoginHelper loginHelper;
+	private final AvatarService avatarService;
+
+	public ProfileController(
+			UserService userService,
+			EmailVerificationService emailVerificationService,
+			RegisterFormValidator registerFormValidator,
+			LoginHelper loginHelper,
+			AvatarService avatarService
+	) {
+		this.userService = userService;
+		this.emailVerificationService = emailVerificationService;
+		this.registerFormValidator = registerFormValidator;
+		this.loginHelper = loginHelper;
+		this.avatarService = avatarService;
+	}
+
+	@GetMapping("/profile")
+	public String profile(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			@RequestParam(name = "tab", defaultValue = "login") String tab,
+			@RequestParam(name = "error", required = false) String error,
+			@RequestParam(name = "login", required = false) String loginSuccess,
+			@RequestParam(name = "logout", required = false) String logoutSuccess,
+			Authentication authentication,
+			Model model
+	) {
+		WebLocale locale = WebLocale.fromCode(langCode);
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Profile" : "Профиль");
+		model.addAttribute("activeTab", tab);
+
+		if (authentication != null && authentication.isAuthenticated()
+				&& !"anonymousUser".equals(authentication.getPrincipal())) {
+			User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
+			model.addAttribute("profileUser", ProfileUserView.from(user, this.avatarService));
+			model.addAttribute("showProfileIntro", !user.isProfileIntroSeen());
+			return "profile/index";
+		}
+
+		if (!model.containsAttribute("loginForm")) {
+			model.addAttribute("loginForm", new LoginForm());
+		}
+		if (!model.containsAttribute("registerForm")) {
+			model.addAttribute("registerForm", new RegisterForm());
+		}
+		model.addAttribute("loginError", "login".equals(error));
+		model.addAttribute("loginSuccess", loginSuccess != null);
+		model.addAttribute("logoutSuccess", logoutSuccess != null);
+		return "profile/guest";
+	}
+
+	@GetMapping("/profile/verify-email")
+	public String verifyEmailPage(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			Authentication authentication,
+			Model model
+	) {
+		if (authentication == null || !authentication.isAuthenticated()
+				|| "anonymousUser".equals(authentication.getPrincipal())) {
+			return "redirect:/profile?lang=" + langCode;
+		}
+		WebLocale locale = WebLocale.fromCode(langCode);
+		User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Confirm your email" : "Подтверждение почты");
+		model.addAttribute("profileUser", ProfileUserView.from(user, this.avatarService));
+		model.addAttribute("mailConfigured", this.emailVerificationService.isMailConfigured());
+		return "profile/verify-email";
+	}
+
+	@GetMapping("/profile/avatar")
+	public String avatarPage(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			@RequestParam(name = "error", required = false) String error,
+			Authentication authentication,
+			Model model
+	) {
+		if (authentication == null || !authentication.isAuthenticated()
+				|| "anonymousUser".equals(authentication.getPrincipal())) {
+			return "redirect:/profile?lang=" + langCode;
+		}
+		WebLocale locale = WebLocale.fromCode(langCode);
+		User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Change avatar" : "Смена аватарки");
+		model.addAttribute("profileUser", ProfileUserView.from(user, this.avatarService));
+		model.addAttribute("skinSize", SkinToAvatarService.SKIN_SIZE);
+		model.addAttribute("avatarSize", SkinToAvatarService.AVATAR_SIZE);
+		model.addAttribute("avatarError", error);
+		return "profile/avatar";
+	}
+
+	@PostMapping("/profile/register")
+	public String register(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			@Valid @ModelAttribute("registerForm") RegisterForm form,
+			BindingResult bindingResult,
+			HttpServletRequest request,
+			HttpServletResponse response,
+			Model model,
+			RedirectAttributes redirectAttributes
+	) {
+		LocaleContextHolder.setLocale(Locale.forLanguageTag(WebLocale.fromCode(langCode).getCode()));
+		this.registerFormValidator.validate(form, bindingResult);
+		if (bindingResult.hasErrors()) {
+			model.addAttribute("pageTitle", WebLocale.fromCode(langCode) == WebLocale.EN ? "Profile" : "Профиль");
+			model.addAttribute("activeTab", "register");
+			model.addAttribute("loginForm", new LoginForm());
+			return "profile/guest";
+		}
+
+		User user = this.userService.register(form);
+		this.emailVerificationService.sendVerificationEmail(user, langCode);
+		this.loginHelper.login(user.getUsername(), request, response);
+		if (!this.emailVerificationService.isMailConfigured()) {
+			redirectAttributes.addFlashAttribute(
+					"verificationUrl",
+					this.emailVerificationService.buildVerificationUrl(user, langCode)
+			);
+		}
+		return "redirect:/profile/verify-email?lang=" + langCode;
+	}
+
+	@PostMapping("/profile/avatar")
+	public String uploadAvatar(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			@RequestParam(name = "mode") String mode,
+			@RequestParam(name = "file") MultipartFile file,
+			Authentication authentication,
+			RedirectAttributes redirectAttributes
+	) {
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return "redirect:/profile?lang=" + langCode;
+		}
+		User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
+		try {
+			if ("skin".equals(mode)) {
+				this.avatarService.uploadSkin(user, file);
+			} else if ("avatar".equals(mode)) {
+				this.avatarService.uploadAvatar(user, file);
+			} else {
+				redirectAttributes.addFlashAttribute("avatarError", "invalid-mode");
+				return "redirect:/profile/avatar?lang=" + langCode;
+			}
+			this.avatarService.markProfileIntroSeen(user);
+			redirectAttributes.addFlashAttribute("avatarSuccess", true);
+			return "redirect:/profile?lang=" + langCode;
+		} catch (AvatarValidationException | IOException exception) {
+			redirectAttributes.addFlashAttribute("avatarErrorMessage", exception.getMessage());
+			return "redirect:/profile/avatar?lang=" + langCode + "&error=1";
+		}
+	}
+
+	@PostMapping("/profile/intro-seen")
+	public String markIntroSeen(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			Authentication authentication
+	) {
+		if (authentication != null && authentication.isAuthenticated()) {
+			User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
+			this.avatarService.markProfileIntroSeen(user);
+		}
+		return "redirect:/profile?lang=" + langCode;
+	}
+
+	@GetMapping("/profile/verify")
+	public String verifyEmail(
+			@RequestParam(name = "token") String token,
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			Model model
+	) {
+		WebLocale locale = WebLocale.fromCode(langCode);
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Email verification" : "Подтверждение почты");
+		model.addAttribute("verified", this.userService.verifyEmail(token));
+		return "profile/verify";
+	}
+
+	@PostMapping("/profile/resend-verification")
+	public String resendVerification(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			Authentication authentication,
+			RedirectAttributes redirectAttributes
+	) {
+		if (authentication == null || !authentication.isAuthenticated()) {
+			return "redirect:/profile?lang=" + langCode;
+		}
+		User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
+		if (user.isEmailVerified()) {
+			return "redirect:/profile?lang=" + langCode;
+		}
+		this.userService.issueVerificationToken(user);
+		this.emailVerificationService.sendVerificationEmail(user, langCode);
+		if (!this.emailVerificationService.isMailConfigured()) {
+			redirectAttributes.addFlashAttribute(
+					"verificationUrl",
+					this.emailVerificationService.buildVerificationUrl(user, langCode)
+			);
+		}
+		redirectAttributes.addFlashAttribute("resent", true);
+		return "redirect:/profile/verify-email?lang=" + langCode;
+	}
+}

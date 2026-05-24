@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+	  xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:fragment="head">
 	<meta charset="UTF-8"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -14,12 +15,41 @@
 			<a th:href="@{/(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Home' : 'Главная'}">Главная</a>
 			<a th:href="@{/tutorial(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Tutorial' : 'Обучение'}">Обучение</a>
 			<a th:href="@{/settings(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'Settings' : 'Настройки'}">Настройки</a>
+			<a sec:authorize="hasAnyRole('MODERATOR','ADMIN')"
+			   th:href="@{/moderation(lang=${locale.code})}"
+			   th:text="${locale.code == 'en' ? 'Moderation' : 'Модерация'}">Модерация</a>
+			<a sec:authorize="hasRole('ADMIN')"
+			   th:href="@{/admin(lang=${locale.code})}"
+			   th:text="${locale.code == 'en' ? 'Administration' : 'Администрация'}">Администрация</a>
 		</nav>
-		<div class="lang-switch">
-			<a th:classappend="${locale.code == 'ru' ? ' active' : ''}"
-			   th:href="@{${currentPath}(lang='ru')}">RU</a>
-			<a th:classappend="${locale.code == 'en' ? ' active' : ''}"
-			   th:href="@{${currentPath}(lang='en')}">EN</a>
+		<div class="header-actions">
+			<div class="lang-switch">
+				<a th:classappend="${locale.code == 'ru' ? ' active' : ''}"
+				   th:href="@{${currentPath}(lang='ru')}">RU</a>
+				<a th:classappend="${locale.code == 'en' ? ' active' : ''}"
+				   th:href="@{${currentPath}(lang='en')}">EN</a>
+			</div>
+			<a class="profile-nav-link"
+			   th:classappend="${currentPath.startsWith('/profile') ? ' active' : ''}"
+			   th:href="@{/profile(lang=${locale.code})}">
+				<span th:text="${locale.code == 'en' ? 'Profile' : 'Профиль'}">Профиль</span>
+				<img class="profile-nav-avatar" th:if="${headerUser != null}"
+					 th:src="${headerUser.avatarUrl()}" th:alt="${headerUser.username()}"
+					 width="16" height="16"/>
+			</a>
+			<a sec:authorize="isAuthenticated()"
+			   class="notifications-nav-link"
+			   th:classappend="${currentPath.startsWith('/notifications') ? ' active' : ''}"
+			   th:href="@{/notifications(lang=${locale.code})}"
+			   th:attr="aria-label=${locale.code == 'en' ? 'Notifications' : 'Уведомления'},
+			            title=${locale.code == 'en' ? 'Notifications' : 'Уведомления'}">
+				<svg class="notifications-bell" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+					<path d="M12 2a5 5 0 0 0-5 5v2.1c0 .9-.3 1.8-.9 2.5L4.3 14.2A1 1 0 0 0 5 16h14a1 1 0 0 0 .7-1.8l-1.8-2.6a4 4 0 0 1-.9-2.5V7a5 5 0 0 0-5-5zm0 20a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22z"/>
+				</svg>
+				<span class="notifications-badge"
+					  th:if="${headerUser != null && headerUser.notificationCount() > 0}"
+					  th:text="${headerUser.notificationBadge()}">0</span>
+			</a>
 		</div>
 	</div>
 </header>

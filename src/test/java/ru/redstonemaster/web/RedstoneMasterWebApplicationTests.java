@@ -48,6 +48,13 @@ class RedstoneMasterWebApplicationTests {
 	}
 
 	@Test
+	void profilePageLoads() throws Exception {
+		this.mockMvc.perform(get("/profile"))
+				.andExpect(status().isOk())
+				.andExpect(view().name("profile/guest"));
+	}
+
+	@Test
 	void tutorialApiReturnsSections() throws Exception {
 		this.mockMvc.perform(get("/api/tutorial/sections"))
 				.andExpect(status().isOk())

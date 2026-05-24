@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main class="page">
+	<h1 th:text="${pageTitle}">Модерация</h1>
+
+	<section class="profile-card placeholder-section">
+		<h2 th:text="${locale.code == 'en' ? 'Coming soon' : 'В разработке'}">В разработке</h2>
+		<p th:if="${locale.code == 'en'}">
+			This section will host moderation tools when user comments on tutorial lessons are added.
+			Planned features:
+		</p>
+		<p th:unless="${locale.code == 'en'}">
+			Здесь появятся инструменты модерации, когда к урокам обучения будут добавлены комментарии пользователей.
+			Планируется:
+		</p>
+		<ul class="placeholder-list">
+			<li th:text="${locale.code == 'en' ? 'Queue of reported comments and spam' : 'Очередь жалоб на комментарии и спам'}"></li>
+			<li th:text="${locale.code == 'en' ? 'Approve, hide or delete comments before they appear on the site' : 'Одобрение, скрытие и удаление комментариев до публикации на сайте'}"></li>
+			<li th:text="${locale.code == 'en' ? 'Temporary bans and warnings for rule violations' : 'Временные блокировки и предупреждения за нарушения правил'}"></li>
+			<li th:text="${locale.code == 'en' ? 'Filters by lesson, author and date' : 'Фильтры по уроку, автору и дате'}"></li>
+			<li th:text="${locale.code == 'en' ? 'Moderation log for audit' : 'Журнал действий модераторов'}"></li>
+		</ul>
+	</section>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>
