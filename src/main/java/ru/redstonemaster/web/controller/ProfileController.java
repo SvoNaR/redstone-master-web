@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.redstonemaster.web.locale.WebLocale;
+import ru.redstonemaster.web.modauth.ModAuthService;
+import ru.redstonemaster.web.modauth.ModAuthSession;
 import ru.redstonemaster.web.profile.AvatarService;
 import ru.redstonemaster.web.profile.AvatarValidationException;
 import ru.redstonemaster.web.profile.ChangeEmailForm;
@@ -50,6 +52,7 @@ public class ProfileController {
 	private final PendingChangeEmailFormValidator pendingChangeEmailFormValidator;
 	private final LoginHelper loginHelper;
 	private final AvatarService avatarService;
+	private final ModAuthService modAuthService;
 
 	public ProfileController(
 			UserService userService,
@@ -59,7 +62,8 @@ public class ProfileController {
 			ChangeEmailFormValidator changeEmailFormValidator,
 			PendingChangeEmailFormValidator pendingChangeEmailFormValidator,
 			LoginHelper loginHelper,
-			AvatarService avatarService
+			AvatarService avatarService,
+			ModAuthService modAuthService
 	) {
 		this.userService = userService;
 		this.pendingRegistrationService = pendingRegistrationService;
@@ -69,6 +73,7 @@ public class ProfileController {
 		this.pendingChangeEmailFormValidator = pendingChangeEmailFormValidator;
 		this.loginHelper = loginHelper;
 		this.avatarService = avatarService;
+		this.modAuthService = modAuthService;
 	}
 
 	@GetMapping("/profile")
@@ -79,12 +84,14 @@ public class ProfileController {
 			@RequestParam(name = "login", required = false) String loginSuccess,
 			@RequestParam(name = "logout", required = false) String logoutSuccess,
 			@RequestParam(name = "registrationExpired", required = false) String registrationExpired,
+			@RequestParam(name = "modAuth", required = false) String modAuth,
 			Authentication authentication,
 			Model model
 	) {
 		WebLocale locale = WebLocale.fromCode(langCode);
 		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Profile" : "Профиль");
 		model.addAttribute("activeTab", tab);
+		model.addAttribute("modAuthFlow", modAuth != null);
 
 		if (authentication != null && authentication.isAuthenticated()
 				&& !"anonymousUser".equals(authentication.getPrincipal())) {
@@ -362,6 +369,13 @@ public class ProfileController {
 		if (usernameOptional.isPresent()) {
 			session.removeAttribute(PendingRegistrationSession.SESSION_KEY);
 			this.loginHelper.login(usernameOptional.get(), request, response);
+			Object rawState = session.getAttribute(ModAuthSession.SESSION_STATE_KEY);
+			if (rawState instanceof String state && !state.isBlank()) {
+				User user = this.userService.findByUsername(usernameOptional.get()).orElseThrow();
+				this.modAuthService.complete(state, user);
+				session.removeAttribute(ModAuthSession.SESSION_STATE_KEY);
+				return "redirect:/auth/mod/return?state=" + state + "&lang=" + langCode;
+			}
 			return "redirect:/profile?lang=" + langCode;
 		}
 		WebLocale locale = WebLocale.fromCode(langCode);

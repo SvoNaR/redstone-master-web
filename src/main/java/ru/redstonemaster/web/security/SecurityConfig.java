@@ -14,6 +14,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+	private final ModAwareAuthenticationSuccessHandler modAwareAuthenticationSuccessHandler;
+
+	public SecurityConfig(ModAwareAuthenticationSuccessHandler modAwareAuthenticationSuccessHandler) {
+		this.modAwareAuthenticationSuccessHandler = modAwareAuthenticationSuccessHandler;
+	}
+
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.authorizeHttpRequests(auth -> auth
@@ -24,6 +30,7 @@ public class SecurityConfig {
 						"/mod-assets/**",
 						"/avatars/**",
 						"/api/**",
+						"/auth/mod/**",
 						"/profile",
 						"/profile/register",
 						"/profile/verify",
@@ -48,13 +55,7 @@ public class SecurityConfig {
 				.loginProcessingUrl("/profile/login")
 				.usernameParameter("login")
 				.passwordParameter("password")
-				.successHandler((request, response, authentication) -> {
-					String lang = request.getParameter("lang");
-					if (lang == null || lang.isBlank()) {
-						lang = "ru";
-					}
-					response.sendRedirect("/profile?lang=" + lang + "&login=success");
-				})
+				.successHandler(this.modAwareAuthenticationSuccessHandler)
 				.failureUrl("/profile?error=login")
 				.permitAll()
 		);
