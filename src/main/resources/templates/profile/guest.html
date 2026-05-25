@@ -22,6 +22,11 @@
 				? 'The confirmation period has expired and your registration data was deleted. Please sign up again.'
 				: 'Срок подтверждения истёк, данные регистрации удалены. Зарегистрируйтесь снова.'}"></span>
 		</div>
+		<div class="alert alert--info" th:if="${modAuthFlow}">
+			<span th:text="${locale.code == 'en'
+				? 'Sign in or create an account to link your profile with the Minecraft mod.'
+				: 'Войдите или зарегистрируйтесь, чтобы связать профиль с модом Minecraft.'}"></span>
+		</div>
 
 		<div class="profile-tabs">
 			<a th:classappend="${activeTab == 'login' ? ' active' : ''}"
