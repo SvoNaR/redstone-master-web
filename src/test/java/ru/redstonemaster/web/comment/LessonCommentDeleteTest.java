@@ -73,6 +73,38 @@ class LessonCommentDeleteTest {
 	}
 
 	@Test
+	void authorCanDeleteOwnComment() {
+		User author = this.createUser("delete_own_user", UserRole.USER);
+		this.commentService.postComment(author, SECTION_ID, LESSON_ID, "my comment", null);
+		long commentId = this.commentRepository.findAll().getLast().getId();
+
+		this.commentService.deleteComment(author, commentId);
+		assertTrue(this.commentRepository.findById(commentId).orElseThrow().isDeleted());
+	}
+
+	@Test
+	void authorCannotDeleteOthersComment() {
+		User author = this.createUser("delete_other_author", UserRole.USER);
+		User other = this.createUser("delete_other_actor", UserRole.USER);
+		this.commentService.postComment(author, SECTION_ID, LESSON_ID, "not yours", null);
+		long commentId = this.commentRepository.findAll().getLast().getId();
+
+		assertThrows(IllegalArgumentException.class, () -> this.commentService.deleteComment(other, commentId));
+		assertFalse(this.commentRepository.findById(commentId).orElseThrow().isDeleted());
+	}
+
+	@Test
+	void deleteButtonShownForOwnComment() {
+		User author = this.createUser("delete_own_view", UserRole.USER);
+		this.commentService.postComment(author, SECTION_ID, LESSON_ID, "visible delete", null);
+
+		var views = this.commentService.listForLesson(SECTION_ID, LESSON_ID, author);
+		assertTrue(views.stream()
+				.filter(view -> view.username().equals(author.getUsername()))
+				.allMatch(view -> view.canModerate() && view.ownComment()));
+	}
+
+	@Test
 	void deleteButtonHiddenForModeratorWhenAuthorIsStaff() {
 		User author = this.createUser("delete_staff_author", UserRole.ADMIN);
 		User moderator = this.createUser("delete_staff_mod", UserRole.MODERATOR);

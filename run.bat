@@ -27,6 +27,21 @@ echo.
 echo Starting Redstone Master Web on http://localhost:8080/
 echo Press Ctrl+C to stop, or run stop.bat from another window.
 echo.
+
+if not exist "application-local.properties" (
+    if exist "application-local.properties.example" (
+        echo Creating application-local.properties from example...
+        copy /Y "application-local.properties.example" "application-local.properties" >nul
+        echo Edit application-local.properties if you need SMTP or a custom admin password.
+        echo.
+    ) else (
+        echo ERROR: application-local.properties is missing and no example file was found.
+        echo Create application-local.properties with app.admin.password=...
+        pause
+        exit /b 1
+    )
+)
+
 set MAVEN_OPTS=-Dfile.encoding=UTF-8
 mvn generate-resources spring-boot:run
 pause

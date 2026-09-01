@@ -117,13 +117,12 @@ public class LessonCommentService {
 	}
 
 	@Transactional
-	public void deleteComment(User moderator, long commentId) {
-		this.requireModerator(moderator);
+	public void deleteComment(User actor, long commentId) {
 		LessonComment comment = this.commentRepository.findById(commentId)
 				.orElseThrow(() -> new IllegalArgumentException("Comment not found"));
 		User author = this.userRepository.findById(comment.getAuthorId())
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
-		if (!this.canDeleteComment(moderator, author)) {
+		if (!this.canDeleteComment(actor, author)) {
 			throw new IllegalArgumentException("Cannot delete this comment");
 		}
 		if (!comment.isDeleted()) {
@@ -362,7 +361,13 @@ public class LessonCommentService {
 	}
 
 	private boolean canDeleteComment(User actor, User author) {
-		if (actor == null || !this.canModerate(actor)) {
+		if (actor == null) {
+			return false;
+		}
+		if (actor.getId().equals(author.getId())) {
+			return true;
+		}
+		if (!this.canModerate(actor)) {
 			return false;
 		}
 		if (actor.getRole() == UserRole.ADMIN) {

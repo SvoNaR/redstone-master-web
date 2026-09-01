@@ -1398,41 +1398,105 @@ table.data-table.admin-table.admin-table--mutes td:last-child {
 	border-top: 1px solid var(--border);
 }
 
-.lesson-comment-form textarea {
+.lesson-comments h2 {
+	margin: 0 0 1rem;
+	color: #ffbcbc;
+}
+
+.lesson-comment-compose {
+	background: rgba(43, 33, 24, 0.85);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 1.1rem 1.25rem;
+	margin-bottom: 1rem;
+}
+
+.lesson-comment-form {
+	margin: 0;
+}
+
+.lesson-comment-form__field {
+	display: grid;
+	gap: 0.35rem;
+	margin: 0;
+}
+
+.lesson-comment-form__label {
+	color: var(--muted);
+	font-size: 0.92rem;
+}
+
+.lesson-comment-form textarea,
+.lesson-comment-form input[type="text"],
+.lesson-comment-form input[type="number"] {
 	width: 100%;
-	max-width: 40rem;
+	padding: 0.55rem 0.65rem;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: rgba(18, 14, 11, 0.85);
+	color: var(--text);
+	font: inherit;
+}
+
+.lesson-comment-form textarea {
 	display: block;
-	margin: 0.35rem 0 0.5rem;
+	min-height: 4.5rem;
+	resize: vertical;
+}
+
+.lesson-comment-form input::placeholder,
+.lesson-comment-form textarea::placeholder {
+	color: rgba(196, 181, 165, 0.65);
+}
+
+.lesson-comment-form__actions {
+	display: flex;
+	justify-content: flex-start;
+	margin-top: 0.65rem;
+}
+
+.lesson-comment-form--reply {
+	margin-top: 0.65rem;
 }
 
 .lesson-comment-list {
 	list-style: none;
 	margin: 1rem 0 0;
 	padding: 0;
+	display: grid;
+	gap: 1rem;
 }
 
 .lesson-comment {
-	margin: 0 0 1rem;
-	padding: 0.75rem;
+	position: relative;
+	margin: 0;
+	padding: 1rem 1.25rem;
 	border: 1px solid var(--border);
-	border-radius: 8px;
-	background: rgba(255, 255, 255, 0.02);
+	border-radius: 12px;
+	background: rgba(43, 33, 24, 0.85);
+}
+
+.lesson-comment:has(.lesson-comment__delete-form) {
+	padding-right: 7.5rem;
 }
 
 .lesson-comment--reply {
-	margin-left: 1.5rem;
+	margin-left: 1.75rem;
 }
 
 .lesson-comment__row {
 	display: flex;
-	gap: 0.75rem;
+	gap: 0.85rem;
 	align-items: flex-start;
 }
 
 .lesson-comment__avatar {
-	width: 32px;
-	height: 32px;
-	flex: 0 0 32px;
+	width: 36px;
+	height: 36px;
+	flex: 0 0 36px;
+	border-radius: 4px;
+	border: 1px solid var(--border);
+	background: #111;
 	image-rendering: pixelated;
 }
 
@@ -1448,32 +1512,110 @@ table.data-table.admin-table.admin-table--mutes td:last-child {
 	align-items: baseline;
 }
 
+.lesson-comment__author {
+	color: #ffbcbc;
+}
+
 .lesson-comment__body {
-	margin: 0.35rem 0 0.5rem;
+	margin: 0.4rem 0 0.55rem;
 	white-space: pre-wrap;
 	word-break: break-word;
+	line-height: 1.5;
+}
+
+.lesson-comment__reply-details {
+	margin-top: 0.15rem;
+}
+
+.lesson-comment__reply-details summary {
+	cursor: pointer;
+	color: var(--link);
+	font-size: 0.9rem;
+	list-style: none;
+}
+
+.lesson-comment__reply-details summary::-webkit-details-marker {
+	display: none;
+}
+
+.lesson-comment__reply-details summary::before {
+	content: "▸ ";
+}
+
+.lesson-comment__reply-details[open] summary::before {
+	content: "▾ ";
+}
+
+.lesson-comment__reply-details summary:hover {
+	color: #ffd0d0;
 }
 
 .lesson-comment__moderation {
 	flex: 0 0 auto;
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
-	align-items: flex-end;
-	min-width: 10rem;
+	gap: 0.65rem;
+	align-items: stretch;
+	min-width: 11.5rem;
+}
+
+.lesson-comment__delete-form {
+	position: absolute;
+	top: 0.85rem;
+	right: 0.85rem;
+	margin: 0;
+}
+
+.lesson-comment-mute-panel {
+	padding: 0.75rem 0.85rem;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: rgba(18, 14, 11, 0.65);
+}
+
+.lesson-comment-mute-panel__title {
+	margin: 0 0 0.55rem;
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: #ffbcbc;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 .lesson-comment-mute-form {
-	display: flex;
-	flex-direction: column;
-	gap: 0.35rem;
-	align-items: stretch;
-	font-size: 0.9rem;
+	display: grid;
+	gap: 0.55rem;
+	margin: 0;
 }
 
-.lesson-comment-mute-form input[type="number"],
-.lesson-comment-mute-form input[type="text"] {
-	width: 100%;
+.lesson-comment-mute-form .lesson-comment-form__actions {
+	margin-top: 0.15rem;
+}
+
+@media (max-width: 720px) {
+	.lesson-comment {
+		padding-right: 1.25rem;
+	}
+
+	.lesson-comment__row {
+		flex-direction: column;
+	}
+
+	.lesson-comment__moderation {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.lesson-comment__delete-form {
+		position: static;
+		align-self: flex-end;
+		order: -1;
+		margin-bottom: 0.35rem;
+	}
+
+	.lesson-comment--reply {
+		margin-left: 0.75rem;
+	}
 }
 
 .admin-stats__grid {
@@ -1497,4 +1639,181 @@ table.data-table.admin-table.admin-table--mutes td:last-child {
 	margin: 0;
 	font-size: 1.35rem;
 	font-weight: 600;
+}
+
+/* Moderation section */
+.moderation-tabs {
+	flex-wrap: wrap;
+}
+
+.moderation-intro {
+	margin: 0 0 1.25rem;
+	color: var(--muted);
+	line-height: 1.55;
+	max-width: 52rem;
+}
+
+.profile-card h2 {
+	margin: 0 0 0.75rem;
+	font-size: 1.2rem;
+	color: #ff8a8a;
+}
+
+.profile-card h3 {
+	margin: 1.35rem 0 0.65rem;
+	font-size: 1.05rem;
+	color: #ffbcbc;
+}
+
+.profile-card > h3:first-of-type {
+	margin-top: 0;
+}
+
+.moderation-form {
+	display: grid;
+	gap: 0.85rem;
+	max-width: 36rem;
+}
+
+.moderation-form label {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.moderation-form input[type="text"],
+.moderation-form input[type="number"],
+.moderation-form input[type="file"],
+.moderation-form textarea {
+	padding: 0.55rem 0.65rem;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	background: rgba(18, 14, 11, 0.85);
+	color: var(--text);
+	font: inherit;
+}
+
+.moderation-form input[type="file"] {
+	padding: 0.45rem 0.55rem;
+	color: var(--muted);
+}
+
+.moderation-form textarea {
+	min-height: 6rem;
+	resize: vertical;
+}
+
+.moderation-form__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.65rem;
+	margin-top: 0.25rem;
+}
+
+.moderation-step {
+	margin-top: 1.25rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid var(--border);
+}
+
+.moderation-step:first-child {
+	margin-top: 0;
+	padding-top: 0;
+	border-top: none;
+}
+
+.moderation-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.75rem;
+	margin: 0 0 1rem;
+	color: var(--muted);
+	font-size: 0.92rem;
+}
+
+.moderation-meta code {
+	font-size: 0.88rem;
+}
+
+.moderation-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.65rem;
+	margin: 0.75rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.moderation-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 1rem;
+}
+
+.moderation-card-link {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	padding: 1rem 1.1rem;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	text-decoration: none;
+	background: rgba(43, 33, 24, 0.85);
+	color: var(--text);
+	transition: border-color 0.15s ease;
+}
+
+.moderation-card-link:hover {
+	border-color: var(--accent);
+}
+
+.moderation-card-link__title {
+	font-weight: 600;
+	color: #ffbcbc;
+}
+
+.moderation-card-link__desc {
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.88rem;
+	line-height: 1.45;
+}
+
+.moderation-workflow {
+	margin: 0;
+	padding-left: 1.25rem;
+	line-height: 1.75;
+}
+
+.moderation-workflow a {
+	text-decoration: none;
+}
+
+.moderation-submission-list {
+	display: grid;
+	gap: 1rem;
+}
+
+.moderation-submission__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.65rem;
+	margin-top: 0.75rem;
+}
+
+.moderation-review-comment {
+	margin: 0.75rem 0 0;
+	padding: 0.75rem 0.9rem;
+	border-left: 4px solid var(--accent);
+	background: rgba(43, 33, 24, 0.7);
+	border-radius: 0 8px 8px 0;
+	color: var(--muted);
+	line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+	.moderation-tabs a {
+		font-size: 0.88rem;
+		padding: 0.4rem 0.7rem;
+	}
 }

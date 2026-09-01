@@ -12,7 +12,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriUtils;
 import ru.redstonemaster.web.admin.AdminPageView;
 import ru.redstonemaster.web.admin.AdminStatsService;
-import ru.redstonemaster.web.admin.AdminStatsView;
 import ru.redstonemaster.web.comment.LessonCommentService;
 import ru.redstonemaster.web.locale.WebLocale;
 import ru.redstonemaster.web.profile.AvatarService;
@@ -48,6 +47,17 @@ public class AdminController {
 	@GetMapping("/admin")
 	public String admin(
 			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			Model model
+	) {
+		WebLocale locale = WebLocale.fromCode(langCode);
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Administration" : "Администрация");
+		model.addAttribute("stats", this.adminStatsService.getStats());
+		return "admin/index";
+	}
+
+	@GetMapping("/admin/moderators")
+	public String moderators(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
 			@RequestParam(name = "userPage", defaultValue = "1") int userPage,
 			@RequestParam(name = "userSearch", defaultValue = "") String userSearch,
 			@RequestParam(name = "modPage", defaultValue = "1") int modPage,
@@ -58,14 +68,12 @@ public class AdminController {
 		Page<User> regularUsersPage = this.userService.findUsersByRole(UserRole.USER, userSearch, userPage);
 		Page<User> moderatorsPage = this.userService.findUsersByRole(UserRole.MODERATOR, modSearch, modPage);
 
-		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Administration" : "Администрация");
-		AdminStatsView stats = this.adminStatsService.getStats();
-		model.addAttribute("stats", stats);
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Moderators" : "Модераторы");
 		model.addAttribute("regularUsers", this.toViews(regularUsersPage.getContent()));
 		model.addAttribute("moderators", this.toViews(moderatorsPage.getContent()));
 		model.addAttribute("regularUserPage", AdminPageView.from(regularUsersPage, userSearch));
 		model.addAttribute("moderatorPage", AdminPageView.from(moderatorsPage, modSearch));
-		return "admin/index";
+		return "admin/moderators";
 	}
 
 	@PostMapping("/admin/promote")
@@ -84,7 +92,7 @@ public class AdminController {
 		} catch (RuntimeException exception) {
 			redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
 		}
-		return "redirect:/admin?" + this.buildAdminQuery(langCode, userPage, userSearch, modPage, modSearch);
+		return "redirect:/admin/moderators?" + this.buildAdminQuery(langCode, userPage, userSearch, modPage, modSearch);
 	}
 
 	@PostMapping("/admin/demote")
@@ -103,7 +111,7 @@ public class AdminController {
 		} catch (RuntimeException exception) {
 			redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
 		}
-		return "redirect:/admin?" + this.buildAdminQuery(langCode, userPage, userSearch, modPage, modSearch);
+		return "redirect:/admin/moderators?" + this.buildAdminQuery(langCode, userPage, userSearch, modPage, modSearch);
 	}
 
 	@GetMapping("/admin/unmute-moderator")

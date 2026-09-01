@@ -6,3 +6,7 @@ spring.mail.password=
 
 # Пароль входа администратора по умолчанию (логин: admin)
 app.admin.password=Admin123!
+
+# FFmpeg для конвертера псевдо-видео (по умолчанию ищется в PATH как "ffmpeg").
+# На Windows при запуске из IDE, если не находится: полный путь к ffmpeg.exe
+# app.moderation.ffmpeg-executable=C:/Users/ИМЯ/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffmpeg.exe

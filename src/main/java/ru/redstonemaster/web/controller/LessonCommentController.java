@@ -72,7 +72,6 @@ public class LessonCommentController {
 	}
 
 	@PostMapping("/comments/{commentId}/delete")
-	@PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
 	public String deleteComment(
 			Authentication authentication,
 			@PathVariable Long commentId,
