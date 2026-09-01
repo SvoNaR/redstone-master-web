@@ -80,6 +80,9 @@
 
 			<li><a th:href="@{/moderation/submissions(lang=${locale.code})}" th:text="${locale.code == 'en' ? 'My submissions' : 'Мои отправки'}">Мои отправки</a></li>
 
+			<li><a th:href="@{/moderation/mute-user(lang=${locale.code})}"
+				   th:text="${locale.code == 'en' ? 'Mute user (comments)' : 'Мьют пользователя (комментарии)'}">Мьют</a></li>
+
 		</ul>
 
 	</section>

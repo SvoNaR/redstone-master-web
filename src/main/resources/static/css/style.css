@@ -1319,3 +1319,110 @@ code {
 .profile-progress {
 	grid-column: 1 / -1;
 }
+
+.lesson-comments {
+	margin-top: 2rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid var(--border);
+}
+
+.lesson-comment-form textarea {
+	width: 100%;
+	max-width: 40rem;
+	display: block;
+	margin: 0.35rem 0 0.5rem;
+}
+
+.lesson-comment-list {
+	list-style: none;
+	margin: 1rem 0 0;
+	padding: 0;
+}
+
+.lesson-comment {
+	margin: 0 0 1rem;
+	padding: 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.02);
+}
+
+.lesson-comment--reply {
+	margin-left: 1.5rem;
+}
+
+.lesson-comment__row {
+	display: flex;
+	gap: 0.75rem;
+	align-items: flex-start;
+}
+
+.lesson-comment__avatar {
+	width: 32px;
+	height: 32px;
+	flex: 0 0 32px;
+	image-rendering: pixelated;
+}
+
+.lesson-comment__main {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.lesson-comment__header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem 0.75rem;
+	align-items: baseline;
+}
+
+.lesson-comment__body {
+	margin: 0.35rem 0 0.5rem;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.lesson-comment__moderation {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-items: flex-end;
+	min-width: 10rem;
+}
+
+.lesson-comment-mute-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	align-items: stretch;
+	font-size: 0.9rem;
+}
+
+.lesson-comment-mute-form input[type="number"],
+.lesson-comment-mute-form input[type="text"] {
+	width: 100%;
+}
+
+.admin-stats__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+	gap: 1rem 1.5rem;
+	margin: 0;
+}
+
+.admin-stats__grid > div {
+	margin: 0;
+}
+
+.admin-stats__grid dt {
+	color: var(--muted);
+	font-size: 0.92rem;
+	margin-bottom: 0.25rem;
+}
+
+.admin-stats__grid dd {
+	margin: 0;
+	font-size: 1.35rem;
+	font-weight: 600;
+}

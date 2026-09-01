@@ -34,6 +34,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import ru.redstonemaster.web.locale.WebLocale;
 
+import ru.redstonemaster.web.comment.LessonCommentService;
 import ru.redstonemaster.web.moderation.LessonSubmission;
 
 import ru.redstonemaster.web.moderation.LessonSubmissionService;
@@ -86,6 +87,8 @@ public class ModerationController {
 
 	private final UserService userService;
 
+	private final LessonCommentService commentService;
+
 
 
 	public ModerationController(
@@ -100,7 +103,9 @@ public class ModerationController {
 
 			ModerationProperties moderationProperties,
 
-			UserService userService
+			UserService userService,
+
+			LessonCommentService commentService
 
 	) {
 
@@ -115,6 +120,8 @@ public class ModerationController {
 		this.moderationProperties = moderationProperties;
 
 		this.userService = userService;
+
+		this.commentService = commentService;
 
 	}
 
@@ -625,6 +632,78 @@ public class ModerationController {
 			return "redirect:/moderation/lesson?submissionId=" + submissionId + "&lang=" + langCode;
 
 		}
+
+	}
+
+
+
+	@GetMapping("/moderation/mute-user")
+
+	public String muteUserForm(
+
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+
+			Model model
+
+	) {
+
+		WebLocale locale = WebLocale.fromCode(langCode);
+
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Mute user" : "Мьют пользователя");
+
+		return "moderation/mute-user";
+
+	}
+
+
+
+	@PostMapping("/moderation/mute-user")
+
+	public String muteUser(
+
+			Authentication authentication,
+
+			@RequestParam String username,
+
+			@RequestParam int minutes,
+
+			@RequestParam String reason,
+
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+
+			RedirectAttributes redirectAttributes
+
+	) {
+
+		WebLocale locale = WebLocale.fromCode(langCode);
+
+		try {
+
+			User target = this.userService.findByUsername(username.trim())
+
+					.orElseThrow(() -> new IllegalArgumentException(
+
+							locale == WebLocale.EN ? "User not found" : "Пользователь не найден"
+
+					));
+
+			this.commentService.muteUser(this.requireUser(authentication), target.getId(), minutes, reason);
+
+			redirectAttributes.addFlashAttribute(
+
+					"successMessage",
+
+					locale == WebLocale.EN ? "User muted" : "Пользователь замьючен"
+
+			);
+
+		} catch (RuntimeException exception) {
+
+			redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+
+		}
+
+		return "redirect:/moderation/mute-user?lang=" + langCode;
 
 	}
 

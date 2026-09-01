@@ -158,13 +158,34 @@
 		</nav>
 	</section>
 
-	<section class="profile-card placeholder-section">
-		<h2 th:text="${locale.code == 'en' ? 'Other administration (planned)' : 'Прочая администрация (планируется)'}"></h2>
-		<ul class="placeholder-list">
-			<li th:text="${locale.code == 'en' ? 'Site settings and feature flags' : 'Настройки сайта и переключатели функций'}"></li>
-			<li th:text="${locale.code == 'en' ? 'User bans and role management beyond moderators' : 'Блокировки и управление ролями шире модераторов'}"></li>
-			<li th:text="${locale.code == 'en' ? 'Statistics: registrations, comments, activity' : 'Статистика: регистрации, комментарии, активность'}"></li>
-		</ul>
+	<section class="profile-card admin-stats">
+		<h2 th:text="${locale.code == 'en' ? 'Statistics' : 'Статистика'}">Статистика</h2>
+		<dl class="admin-stats__grid">
+			<div>
+				<dt th:text="${locale.code == 'en' ? 'Regular users' : 'Пользователи'}">Пользователи</dt>
+				<dd th:text="${stats.totalUsers()}">0</dd>
+			</div>
+			<div>
+				<dt th:text="${locale.code == 'en' ? 'Moderators' : 'Модераторы'}">Модераторы</dt>
+				<dd th:text="${stats.moderators()}">0</dd>
+			</div>
+			<div>
+				<dt th:text="${locale.code == 'en' ? 'Administrators' : 'Администраторы'}">Администраторы</dt>
+				<dd th:text="${stats.administrators()}">0</dd>
+			</div>
+			<div>
+				<dt th:text="${locale.code == 'en' ? 'Lesson comments' : 'Комментарии к урокам'}">Комментарии</dt>
+				<dd th:text="${stats.lessonComments()}">0</dd>
+			</div>
+			<div>
+				<dt th:text="${locale.code == 'en' ? 'Lesson completions (mod sync)' : 'Пройденные уроки (синхр. мода)'}">Пройденные уроки</dt>
+				<dd th:text="${stats.lessonCompletions()}">0</dd>
+			</div>
+			<div>
+				<dt th:text="${locale.code == 'en' ? 'News posts' : 'Новости'}">Новости</dt>
+				<dd th:text="${stats.newsPosts()}">0</dd>
+			</div>
+		</dl>
 	</section>
 </main>
 

@@ -51,7 +51,7 @@
 				<dd th:text="${locale.code == 'en'
 					? (profileUser.role().name() == 'USER' ? 'User' : (profileUser.role().name() == 'MODERATOR' ? 'Moderator' : 'Administrator'))
 					: (profileUser.role().name() == 'USER' ? 'Пользователь' : (profileUser.role().name() == 'MODERATOR' ? 'Модератор' : 'Администратор'))}"></dd>
-				<dt th:text="${locale.code == 'en' ? 'Member since' : 'На сайте с'}">На сайте с</dt>
+				<dt th:text="${locale.code == 'en' ? 'Registered' : 'Зарегистрирован'}">Зарегистрирован</dt>
 				<dd th:text="${#temporals.format(profileUser.createdAt(), 'dd.MM.yyyy HH:mm')}"></dd>
 			</dl>
 

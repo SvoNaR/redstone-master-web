@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriUtils;
 import ru.redstonemaster.web.admin.AdminPageView;
+import ru.redstonemaster.web.admin.AdminStatsService;
+import ru.redstonemaster.web.admin.AdminStatsView;
 import ru.redstonemaster.web.locale.WebLocale;
 import ru.redstonemaster.web.profile.AvatarService;
 import ru.redstonemaster.web.profile.ProfileUserView;
@@ -26,10 +28,16 @@ public class AdminController {
 
 	private final UserService userService;
 	private final AvatarService avatarService;
+	private final AdminStatsService adminStatsService;
 
-	public AdminController(UserService userService, AvatarService avatarService) {
+	public AdminController(
+			UserService userService,
+			AvatarService avatarService,
+			AdminStatsService adminStatsService
+	) {
 		this.userService = userService;
 		this.avatarService = avatarService;
+		this.adminStatsService = adminStatsService;
 	}
 
 	@GetMapping("/admin")
@@ -46,6 +54,8 @@ public class AdminController {
 		Page<User> moderatorsPage = this.userService.findUsersByRole(UserRole.MODERATOR, modSearch, modPage);
 
 		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Administration" : "Администрация");
+		AdminStatsView stats = this.adminStatsService.getStats();
+		model.addAttribute("stats", stats);
 		model.addAttribute("regularUsers", this.toViews(regularUsersPage.getContent()));
 		model.addAttribute("moderators", this.toViews(moderatorsPage.getContent()));
 		model.addAttribute("regularUserPage", AdminPageView.from(regularUsersPage, userSearch));

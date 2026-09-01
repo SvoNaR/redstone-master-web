@@ -8,6 +8,9 @@ import ru.redstonemaster.web.user.User;
 import ru.redstonemaster.web.user.UserRepository;
 import ru.redstonemaster.web.user.UserRole;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -119,6 +122,60 @@ public class NotificationService {
 			));
 		}
 	}
+
+	@Transactional
+	public void notifyCommentEvent(
+			User recipient,
+			String sourceKey,
+			NotificationType type,
+			String titleRu,
+			String titleEn,
+			String messageRu,
+			String messageEn,
+			String actionPath
+	) {
+		this.ensureNotification(
+				recipient,
+				sourceKey,
+				type,
+				titleRu,
+				titleEn,
+				messageRu,
+				messageEn,
+				actionPath,
+				"Открыть",
+				"Open"
+		);
+	}
+
+	@Transactional
+	public void notifyUserMuted(Long targetUserId, String moderatorUsername, Instant mutedUntil, String reason) {
+		User target = this.userRepository.findById(targetUserId)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+		String untilLabel = MUTE_UNTIL_FORMATTER.format(mutedUntil);
+		String sourceKey = "user-mute:" + targetUserId + ":" + System.nanoTime();
+		String titleRu = "Ограничение комментариев";
+		String titleEn = "Comment restriction";
+		String messageRu = "Модератор " + moderatorUsername + " ограничил вам комментарии до "
+				+ untilLabel + " (UTC). Причина: " + reason;
+		String messageEn = "Moderator " + moderatorUsername + " restricted your comments until "
+				+ untilLabel + " (UTC). Reason: " + reason;
+		this.notificationRepository.save(new UserNotification(
+				target,
+				NotificationType.USER_MUTE,
+				sourceKey,
+				titleRu,
+				titleEn,
+				messageRu,
+				messageEn,
+				"/notifications",
+				"Открыть",
+				"Open"
+		));
+	}
+
+	private static final DateTimeFormatter MUTE_UNTIL_FORMATTER =
+			DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.of("UTC"));
 
 	@Transactional
 	public void notifyLessonSubmissionReviewed(LessonSubmission submission, boolean approved) {
