@@ -6,6 +6,7 @@ public record TutorialLesson(
 		String id,
 		String title,
 		String body,
-		List<String> imageUrls
+		List<String> imageUrls,
+		List<String> videoIds
 ) {
 }

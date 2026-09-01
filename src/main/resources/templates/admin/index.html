@@ -7,6 +7,14 @@
 <main class="page">
 	<h1 th:text="${pageTitle}">Администрация</h1>
 
+	<section class="section-block">
+		<h2 th:text="${locale.code == 'en' ? 'Lesson review' : 'Проверка уроков'}">Проверка уроков</h2>
+		<p>
+			<a class="btn btn--secondary" th:href="@{/admin/lesson-submissions(lang=${locale.code})}"
+			   th:text="${locale.code == 'en' ? 'Open submission queue' : 'Очередь уроков модераторов'}">Очередь уроков</a>
+		</p>
+	</section>
+
 	<div class="alert alert--success" th:if="${adminMessage == 'promoted'}">
 		<span th:text="${locale.code == 'en' ? 'User promoted to moderator.' : 'Пользователь назначен модератором.'}"></span>
 	</div>

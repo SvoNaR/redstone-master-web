@@ -1,0 +1,8 @@
+# Скопируйте этот файл в application-local.properties в той же папке (redstone-master-web/).
+# application-local.properties не попадает в Git.
+
+# Пароль приложения Gmail (Google Account → Security → App passwords), не пароль от аккаунта
+spring.mail.password=
+
+# Пароль входа администратора по умолчанию (логин: admin)
+app.admin.password=Admin123!

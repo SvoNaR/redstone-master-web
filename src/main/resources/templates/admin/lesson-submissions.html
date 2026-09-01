@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main class="page">
+	<h1 th:text="${pageTitle}">Проверка уроков</h1>
+	<p><a th:href="@{/admin(lang=${locale.code})}" th:text="${locale.code == 'en' ? '← Administration' : '← Администрация'}">← Администрация</a></p>
+	<p class="form-message success" th:if="${adminMessage == 'lesson-approved'}"
+	   th:text="${locale.code == 'en' ? 'Lesson approved.' : 'Урок одобрен.'}"></p>
+	<p class="form-message success" th:if="${adminMessage == 'lesson-rejected'}"
+	   th:text="${locale.code == 'en' ? 'Lesson rejected.' : 'Урок отклонён.'}"></p>
+
+	<section class="profile-card" th:if="${#lists.isEmpty(submissions)}">
+		<p th:text="${locale.code == 'en' ? 'No lessons pending review.' : 'Нет уроков на проверке.'}"></p>
+	</section>
+
+	<section class="profile-card" th:each="item : ${submissions}">
+		<h2 th:text="${item.titleRu}">Урок</h2>
+		<p th:text="${item.sectionId} + ' / ' + ${item.lessonId} + ' · video: ' + ${item.videoId}"></p>
+		<p th:if="${item.jarPath}">
+			<a th:href="@{/admin/lesson-submissions/{id}/download(id=${item.id})}"
+			   th:text="${locale.code == 'en' ? 'Download JAR' : 'Скачать JAR'}">Скачать JAR</a>
+		</p>
+
+		<form method="post" th:action="@{/admin/lesson-submissions/{id}/approve(id=${item.id}, lang=${locale.code})}">
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+			<label>
+				<span th:text="${locale.code == 'en' ? 'Comment' : 'Комментарий'}">Комментарий</span>
+				<input name="comment" type="text"/>
+			</label>
+			<button type="submit" th:text="${locale.code == 'en' ? 'Approve' : 'Одобрить'}">Одобрить</button>
+		</form>
+
+		<form method="post" th:action="@{/admin/lesson-submissions/{id}/reject(id=${item.id}, lang=${locale.code})}">
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+			<label>
+				<span th:text="${locale.code == 'en' ? 'Rejection reason' : 'Причина отклонения'}">Причина</span>
+				<input name="comment" type="text" required/>
+			</label>
+			<button type="submit" th:text="${locale.code == 'en' ? 'Reject' : 'Отклонить'}">Отклонить</button>
+		</form>
+	</section>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

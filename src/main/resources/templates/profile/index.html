@@ -46,10 +46,6 @@
 				<dt th:text="${locale.code == 'en' ? 'Email' : 'Почта'}">Почта</dt>
 				<dd>
 					<span th:text="${profileUser.email()}"></span>
-					<span class="status-badge status-badge--ok" th:if="${profileUser.emailVerified()}"
-						  th:text="${locale.code == 'en' ? 'Verified' : 'Подтверждена'}"></span>
-					<span class="status-badge status-badge--warn" th:unless="${profileUser.emailVerified()}"
-						  th:text="${locale.code == 'en' ? 'Not verified' : 'Не подтверждена'}"></span>
 				</dd>
 				<dt th:text="${locale.code == 'en' ? 'Role' : 'Роль'}">Роль</dt>
 				<dd th:text="${locale.code == 'en'
@@ -63,9 +59,6 @@
 				<div class="profile-account-actions">
 					<a class="btn btn--secondary" th:href="@{/profile/change-email(lang=${locale.code})}"
 					   th:text="${locale.code == 'en' ? 'Change email' : 'Сменить почту'}"></a>
-					<a class="btn btn--secondary" th:unless="${profileUser.emailVerified()}"
-					   th:href="@{/profile/verify-email(lang=${locale.code})}"
-					   th:text="${locale.code == 'en' ? 'Confirm email' : 'Подтвердить почту'}"></a>
 				</div>
 				<form th:action="@{/profile/logout}" method="post" class="profile-logout"
 					  th:attr="data-confirm-message=${locale.code == 'en' ? 'Are you sure you want to sign out?' : 'Вы действительно хотите выйти?'}">

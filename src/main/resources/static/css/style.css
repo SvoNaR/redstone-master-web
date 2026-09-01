@@ -58,12 +58,17 @@ a {
 }
 
 .brand {
+	display: inline-flex;
+	align-items: center;
 	font-weight: 700;
 	font-size: 1.65rem;
+	line-height: 1;
 	color: var(--burgundy);
 	text-decoration: none;
 	letter-spacing: 0.01em;
 	flex-shrink: 0;
+	white-space: nowrap;
+	transform: translateY(-2px);
 }
 
 .brand:hover {

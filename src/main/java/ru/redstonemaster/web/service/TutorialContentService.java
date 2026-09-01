@@ -84,7 +84,8 @@ public class TutorialContentService {
 				lessonNode.path("id").asText(),
 				lessonNode.path("title").asText(),
 				lessonNode.path("body").asText(""),
-				ModAssetUrls.toWebUrls(this.readStringList(lessonNode.get("images")))
+				ModAssetUrls.toWebUrls(this.readStringList(lessonNode.get("images"))),
+				this.readStringList(lessonNode.get("videos"))
 		);
 	}
 

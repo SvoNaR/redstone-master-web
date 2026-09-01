@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+
+<main class="page">
+	<h1 th:text="${pageTitle}">Мои уроки</h1>
+	<p><a th:href="@{/moderation(lang=${locale.code})}" th:text="${locale.code == 'en' ? '← Moderation' : '← Модерация'}">← Модерация</a></p>
+	<p class="form-message success" th:if="${successMessage}" th:text="${successMessage}"></p>
+
+	<section class="profile-card" th:if="${#lists.isEmpty(submissions)}">
+		<p th:text="${locale.code == 'en' ? 'No submissions yet.' : 'Отправок пока нет.'}">Нет отправок</p>
+	</section>
+
+	<section class="profile-card" th:each="item : ${submissions}">
+		<h2 th:text="${item.titleRu}">Урок</h2>
+		<p th:text="${item.sectionId} + ' / ' + ${item.lessonId} + ' · ' + ${item.status}"></p>
+		<p th:if="${item.jarPath}">
+			<a th:href="@{/moderation/submissions/{id}/download(id=${item.id})}"
+			   th:text="${locale.code == 'en' ? 'Download JAR' : 'Скачать JAR'}">Скачать JAR</a>
+		</p>
+		<p th:if="${item.reviewComment}" th:text="${item.reviewComment}"></p>
+	</section>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

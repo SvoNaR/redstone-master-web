@@ -2,9 +2,11 @@ package ru.redstonemaster.web.notification;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.redstonemaster.web.moderation.LessonSubmission;
 import ru.redstonemaster.web.news.NewsPost;
 import ru.redstonemaster.web.user.User;
 import ru.redstonemaster.web.user.UserRepository;
+import ru.redstonemaster.web.user.UserRole;
 
 import java.util.List;
 
@@ -79,6 +81,73 @@ public class NotificationService {
 
 	public static String newsSourceKey(Long newsId) {
 		return "news:" + newsId;
+	}
+
+	public static String lessonSubmissionSourceKey(Long submissionId) {
+		return "lesson-submission:" + submissionId;
+	}
+
+	@Transactional
+	public void notifyLessonSubmissionPending(LessonSubmission submission) {
+		String sourceKey = lessonSubmissionSourceKey(submission.getId());
+		String titleRu = "Новый урок на проверке";
+		String titleEn = "New lesson pending review";
+		String messageRu = "Модератор отправил урок «" + submission.getTitleRu() + "» ("
+				+ submission.getSectionId() + "/" + submission.getLessonId() + ").";
+		String messageEn = "Moderator submitted lesson \"" + submission.getTitleEn() + "\" ("
+				+ submission.getSectionId() + "/" + submission.getLessonId() + ").";
+		String actionPath = "/admin/lesson-submissions";
+
+		for (User user : this.userRepository.findAll()) {
+			if (user.getRole() != UserRole.ADMIN) {
+				continue;
+			}
+			if (this.notificationRepository.findByUserIdAndSourceKey(user.getId(), sourceKey).isPresent()) {
+				continue;
+			}
+			this.notificationRepository.save(new UserNotification(
+					user,
+					NotificationType.LESSON_MODERATION,
+					sourceKey,
+					titleRu,
+					titleEn,
+					messageRu,
+					messageEn,
+					actionPath,
+					"Проверить",
+					"Review"
+			));
+		}
+	}
+
+	@Transactional
+	public void notifyLessonSubmissionReviewed(LessonSubmission submission, boolean approved) {
+		User moderator = this.userRepository.findById(submission.getModeratorUserId())
+				.orElse(null);
+		if (moderator == null) {
+			return;
+		}
+		String sourceKey = lessonSubmissionSourceKey(submission.getId()) + ":review";
+		String titleRu = approved ? "Урок одобрен" : "Урок отклонён";
+		String titleEn = approved ? "Lesson approved" : "Lesson rejected";
+		String messageRu = "Администратор проверил урок «" + submission.getTitleRu() + "».";
+		String messageEn = "Administrator reviewed lesson \"" + submission.getTitleEn() + "\".";
+		if (submission.getReviewComment() != null && !submission.getReviewComment().isBlank()) {
+			messageRu += " Комментарий: " + submission.getReviewComment();
+			messageEn += " Comment: " + submission.getReviewComment();
+		}
+		this.ensureNotification(
+				moderator,
+				sourceKey,
+				NotificationType.LESSON_MODERATION,
+				titleRu,
+				titleEn,
+				messageRu,
+				messageEn,
+				"/moderation/submissions",
+				"Открыть",
+				"Open"
+		);
 	}
 
 	@Transactional(readOnly = true)

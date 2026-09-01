@@ -32,8 +32,33 @@ other_projects\redstone-master-web\run.bat
 | http://localhost:8080/tutorial/{sectionId} | Раздел |
 | http://localhost:8080/tutorial/{sectionId}/{lessonId} | Урок |
 | http://localhost:8080/settings | Настройки и клавиши |
+| http://localhost:8080/moderation | Модерация (роль MODERATOR / ADMIN) |
+| http://localhost:8080/moderation/pseudo-video | Конвертер видео → псевдо-видео для мода |
+| http://localhost:8080/admin/lesson-submissions | Очередь уроков на проверку (ADMIN) |
 
 Параметр `?lang=en` переключает язык (по умолчанию `ru`).
+
+## Псевдо-видео для мода (модераторы)
+
+Мод воспроизводит **последовательность PNG-кадров** (15 fps, 854×480 по умолчанию), а не обычное видео.
+В разделе **Модерация → Конвертер псевдо-видео** можно:
+
+1. Задать `video id` (имя папки в ресурсах мода).
+2. Загрузить исходное видео (mp4, webm и т.д.) — сервер вызывает **FFmpeg** и создаёт `frame_00000.png`, …, `meta.json`.
+3. Скачать **JAR** для папки `mods` Minecraft или **ZIP** с кадрами.
+
+Для полного урока с текстом и привязкой к каталогу обучения используйте **Редактор урока**, затем соберите JAR урока и отправьте администратору.
+
+Настройки конвертации в `application.properties`:
+
+```properties
+app.moderation.ffmpeg-executable=ffmpeg
+app.moderation.video-fps=15
+app.moderation.video-width=854
+app.moderation.video-height=480
+```
+
+На Windows укажите полный путь к `ffmpeg.exe`, если он не в `PATH`.
 
 ## REST API
 
