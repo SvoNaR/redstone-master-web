@@ -51,6 +51,8 @@ import ru.redstonemaster.web.moderation.VideoToPngFramesService;
 
 import ru.redstonemaster.web.user.User;
 
+import ru.redstonemaster.web.user.UserRole;
+
 import ru.redstonemaster.web.user.UserService;
 
 
@@ -704,6 +706,68 @@ public class ModerationController {
 		}
 
 		return "redirect:/moderation/mute-user?lang=" + langCode;
+
+	}
+
+
+
+	@GetMapping("/moderation/unmute-user")
+
+	public String unmuteUserForm(
+
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+
+			Model model
+
+	) {
+
+		WebLocale locale = WebLocale.fromCode(langCode);
+
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Unmute user" : "Снять мьют с пользователя");
+
+		model.addAttribute("mutedUsers", this.commentService.listActiveMutesForRole(UserRole.USER));
+
+		return "moderation/unmute-user";
+
+	}
+
+
+
+	@PostMapping("/moderation/unmute-user")
+
+	public String unmuteUser(
+
+			Authentication authentication,
+
+			@RequestParam Long userId,
+
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+
+			RedirectAttributes redirectAttributes
+
+	) {
+
+		WebLocale locale = WebLocale.fromCode(langCode);
+
+		try {
+
+			this.commentService.unmuteUser(this.requireUser(authentication), userId);
+
+			redirectAttributes.addFlashAttribute(
+
+					"successMessage",
+
+					locale == WebLocale.EN ? "User unmuted" : "Мьют с пользователя снят"
+
+			);
+
+		} catch (RuntimeException exception) {
+
+			redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+
+		}
+
+		return "redirect:/moderation/unmute-user?lang=" + langCode;
 
 	}
 

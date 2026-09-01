@@ -15,6 +15,17 @@
 		</p>
 	</section>
 
+	<section class="section-block">
+		<h2 th:text="${locale.code == 'en' ? 'Comment mutes' : 'Мьюты комментариев'}">Мьюты комментариев</h2>
+		<p class="muted" th:text="${locale.code == 'en'
+			? 'Remove comment restrictions from moderators who were muted by an administrator.'
+			: 'Снимайте ограничения на комментарии с модераторов, замьюченных администратором.'}"></p>
+		<p>
+			<a class="btn btn--secondary" th:href="@{/admin/unmute-moderator(lang=${locale.code})}"
+			   th:text="${locale.code == 'en' ? 'Unmute moderators' : 'Снять мьют с модераторов'}">Снять мьют</a>
+		</p>
+	</section>
+
 	<div class="alert alert--success" th:if="${adminMessage == 'promoted'}">
 		<span th:text="${locale.code == 'en' ? 'User promoted to moderator.' : 'Пользователь назначен модератором.'}"></span>
 	</div>

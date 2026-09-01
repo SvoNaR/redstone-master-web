@@ -1,5 +1,7 @@
 package ru.redstonemaster.web.comment;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.redstonemaster.web.notification.NotificationService;
@@ -12,13 +14,17 @@ import ru.redstonemaster.web.user.UserRole;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class LessonCommentService {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(LessonCommentService.class);
 
 	private final LessonCommentRepository commentRepository;
 	private final UserMuteRepository muteRepository;
@@ -72,7 +78,7 @@ public class LessonCommentService {
 					comment.getCreatedAt(),
 					comment.getParentCommentId(),
 					replyToUsername,
-					canModerate,
+					this.canDeleteComment(viewer, author),
 					canModerate && this.canMuteTarget(viewer, author),
 					viewerId != null && viewerId.equals(comment.getAuthorId())
 			));
@@ -115,6 +121,11 @@ public class LessonCommentService {
 		this.requireModerator(moderator);
 		LessonComment comment = this.commentRepository.findById(commentId)
 				.orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+		User author = this.userRepository.findById(comment.getAuthorId())
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+		if (!this.canDeleteComment(moderator, author)) {
+			throw new IllegalArgumentException("Cannot delete this comment");
+		}
 		if (!comment.isDeleted()) {
 			comment.markDeleted();
 		}
@@ -136,6 +147,50 @@ public class LessonCommentService {
 		User target = this.userRepository.findById(targetUserId)
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
 		this.applyMute(moderator, target, minutes, reason);
+	}
+
+	@Transactional
+	public void unmuteUser(User actor, long targetUserId) {
+		this.requireModerator(actor);
+		User target = this.userRepository.findById(targetUserId)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+		this.applyUnmute(actor, target);
+	}
+
+	@Transactional(readOnly = true)
+	public List<ActiveMuteView> listActiveMutesForRole(UserRole role) {
+		Instant now = Instant.now();
+		Map<Long, UserMute> latestByUser = new LinkedHashMap<>();
+		for (UserMute mute : this.muteRepository.findAllActiveMutes(now)) {
+			latestByUser.merge(
+					mute.getUserId(),
+					mute,
+					(existing, candidate) -> existing.getMutedUntil().isAfter(candidate.getMutedUntil())
+							? existing
+							: candidate
+			);
+		}
+
+		List<ActiveMuteView> views = new ArrayList<>();
+		for (UserMute mute : latestByUser.values()) {
+			User user = this.userRepository.findById(mute.getUserId()).orElse(null);
+			if (user == null || user.getRole() != role) {
+				continue;
+			}
+			String mutedByUsername = this.userRepository.findById(mute.getMutedById())
+					.map(User::getUsername)
+					.orElse("—");
+			views.add(new ActiveMuteView(
+					user.getId(),
+					user.getUsername(),
+					user.getEmail(),
+					mute.getMutedUntil(),
+					mute.getReason(),
+					mutedByUsername
+			));
+		}
+		views.sort(Comparator.comparing(ActiveMuteView::mutedUntil));
+		return views;
 	}
 
 	@Transactional
@@ -169,14 +224,56 @@ public class LessonCommentService {
 		String normalizedReason = this.normalizeReason(reason);
 		Instant until = Instant.now().plusSeconds((long) minutes * 60L);
 		this.muteRepository.save(new UserMute(target.getId(), moderator.getId(), until, normalizedReason));
-		this.notificationService.notifyUserMuted(target.getId(), moderator.getUsername(), until, normalizedReason);
+		this.muteRepository.flush();
+		try {
+			this.notificationService.notifyUserMuted(target.getId(), moderator.getUsername(), until, normalizedReason);
+		} catch (RuntimeException exception) {
+			LOGGER.error(
+					"Mute saved for user {}, but notification failed: {}",
+					target.getId(),
+					exception.getMessage(),
+					exception
+			);
+		}
+	}
+
+	private void applyUnmute(User actor, User target) {
+		if (target.getId().equals(actor.getId())) {
+			throw new IllegalArgumentException("Cannot unmute yourself");
+		}
+		if (target.getRole() == UserRole.ADMIN) {
+			throw new IllegalArgumentException("Cannot unmute administrator");
+		}
+		if (target.getRole() == UserRole.MODERATOR && actor.getRole() != UserRole.ADMIN) {
+			throw new IllegalArgumentException("Only administrator can unmute moderators");
+		}
+		Instant now = Instant.now();
+		List<UserMute> activeMutes = this.muteRepository.findActiveMutesForUser(target.getId(), now);
+		if (activeMutes.isEmpty()) {
+			throw new IllegalArgumentException("User is not muted");
+		}
+		Instant expiredAt = now.minusSeconds(1);
+		for (UserMute mute : activeMutes) {
+			mute.setMutedUntil(expiredAt);
+		}
+		this.muteRepository.flush();
+		try {
+			this.notificationService.notifyUserUnmuted(target.getId(), actor.getUsername());
+		} catch (RuntimeException exception) {
+			LOGGER.error(
+					"Unmute saved for user {}, but notification failed: {}",
+					target.getId(),
+					exception.getMessage(),
+					exception
+			);
+		}
 	}
 
 	private Optional<UserMute> findActiveMute(Long userId) {
-		return this.muteRepository.findFirstByUserIdAndMutedUntilGreaterThanOrderByMutedUntilDesc(
-				userId,
-				Instant.now()
-		);
+		if (userId == null) {
+			return Optional.empty();
+		}
+		return this.muteRepository.findActiveMute(userId, Instant.now());
 	}
 
 	private void notifyCommentReply(User author, Long replyToUserId, LessonComment comment, String sectionId, String lessonId) {
@@ -262,6 +359,16 @@ public class LessonCommentService {
 			return false;
 		}
 		return target.getRole() != UserRole.MODERATOR || moderator.getRole() == UserRole.ADMIN;
+	}
+
+	private boolean canDeleteComment(User actor, User author) {
+		if (actor == null || !this.canModerate(actor)) {
+			return false;
+		}
+		if (actor.getRole() == UserRole.ADMIN) {
+			return true;
+		}
+		return author.getRole() == UserRole.USER;
 	}
 
 	private Map<Long, User> loadAuthors(List<LessonComment> comments) {

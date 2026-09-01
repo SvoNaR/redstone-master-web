@@ -54,6 +54,10 @@ public class UserMute {
 		return this.mutedUntil;
 	}
 
+	public void setMutedUntil(Instant mutedUntil) {
+		this.mutedUntil = mutedUntil;
+	}
+
 	public String getReason() {
 		return this.reason;
 	}

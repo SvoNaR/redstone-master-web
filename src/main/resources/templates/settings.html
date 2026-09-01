@@ -31,6 +31,14 @@
 	</section>
 
 	<section class="section-block">
+		<h2 th:text="${locale.code == 'en' ? 'Notes' : 'Подсказки'}">Подсказки</h2>
+		<article class="about-card" th:each="note : ${referenceNotes}">
+			<h3 th:text="${note.title()}">Заголовок</h3>
+			<p th:text="${note.body()}">Текст</p>
+		</article>
+	</section>
+
+	<section class="section-block">
 		<h2 th:text="${locale.code == 'en' ? 'Key bindings' : 'Управление'}">Управление</h2>
 		<table class="data-table data-table--wide">
 			<thead>

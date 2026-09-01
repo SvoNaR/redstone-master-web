@@ -41,6 +41,12 @@ public class KeyBindingService {
 						english ? "Mouse button 5" : "Кнопка мыши 5"
 				),
 				new KeyBindingInfo(
+						english ? "Open while typing text" : "Открытие при вводе текста",
+						english
+								? "Blocked: chat, signs, books, Creative search, recipe book, mod search fields"
+								: "Заблокировано: чат, таблички, книги, поиск в креативе, книга рецептов, поиск в моде"
+				),
+				new KeyBindingInfo(
 						english ? "Rebind keys" : "Переназначение",
 						english ? "Minecraft Settings -> Controls -> Redstone Master"
 								: "Настройки Minecraft -> Управление -> Redstone Master"

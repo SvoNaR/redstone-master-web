@@ -3,6 +3,7 @@ package ru.redstonemaster.web.service;
 import org.springframework.stereotype.Service;
 import ru.redstonemaster.web.locale.WebLocale;
 import ru.redstonemaster.web.model.SettingInfo;
+import ru.redstonemaster.web.model.SettingReferenceNote;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,13 @@ public class SettingsReferenceService {
 					null,
 					"80%",
 					"80%"
+			),
+			new SettingDefinition(
+					"gui.redstone-master.settings.section.interface",
+					"gui.redstone-master.settings.background_opacity",
+					"gui.redstone-master.settings.background_opacity.tooltip",
+					"75%",
+					"75%"
 			),
 			new SettingDefinition(
 					"gui.redstone-master.settings.section.interface",
@@ -100,5 +108,52 @@ public class SettingsReferenceService {
 			));
 		}
 		return settings;
+	}
+
+	public List<SettingReferenceNote> getReferenceNotes(WebLocale locale) {
+		if (locale == WebLocale.EN) {
+			return List.of(
+					new SettingReferenceNote(
+							"Background transparency",
+							"Slider from 100% (fully transparent panel) to 0% (opaque black). Default is 75%. "
+									+ "The game world or menu background remains visible behind the panel."
+					),
+					new SettingReferenceNote(
+							"Search fields",
+							"Tutorial and Settings tabs have a search box at the top. When focused, a blinking cursor "
+									+ "appears like in vanilla Minecraft search fields."
+					),
+					new SettingReferenceNote(
+							"Open key while typing",
+							"The ] key does not open the mod while you enter text: in-game chat, signs, books, "
+									+ "Creative inventory search, survival recipe book search, or mod search fields."
+					),
+					new SettingReferenceNote(
+							"Reset",
+							"Each setting has a Reset button. «Reset all settings» at the bottom restores every default."
+					)
+			);
+		}
+		return List.of(
+				new SettingReferenceNote(
+						"Прозрачность фона",
+						"Ползунок от 100% (полностью прозрачная панель) до 0% (непрозрачный чёрный фон). "
+								+ "Стандарт — 75%. Мир или фон меню остаётся виден за панелью."
+				),
+				new SettingReferenceNote(
+						"Поля поиска",
+						"На вкладках «Обучение» и «Настройки» — строка поиска сверху. При фокусе отображается "
+								+ "мигающий курсор, как в поиске Minecraft."
+				),
+				new SettingReferenceNote(
+						"Клавиша ] при вводе текста",
+						"Окно мода не открывается по ], пока вы вводите текст: чат, таблички, книги, "
+								+ "поиск в креативе, книга рецептов или поля поиска мода."
+				),
+				new SettingReferenceNote(
+						"Сброс",
+						"У каждой настройки — кнопка «Сброс». «Сбросить все настройки» внизу возвращает все значения по умолчанию."
+				)
+		);
 	}
 }

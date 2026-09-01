@@ -82,6 +82,8 @@
 
 			<li><a th:href="@{/moderation/mute-user(lang=${locale.code})}"
 				   th:text="${locale.code == 'en' ? 'Mute user (comments)' : 'Мьют пользователя (комментарии)'}">Мьют</a></li>
+			<li><a th:href="@{/moderation/unmute-user(lang=${locale.code})}"
+				   th:text="${locale.code == 'en' ? 'Unmute user (comments)' : 'Снять мьют с пользователя (комментарии)'}">Снять мьют</a></li>
 
 		</ul>
 

@@ -1161,6 +1161,78 @@ code {
 	white-space: nowrap;
 }
 
+.table-scroll {
+	overflow-x: auto;
+	max-width: 100%;
+	-webkit-overflow-scrolling: touch;
+}
+
+table.data-table.admin-table.admin-table--mutes {
+	width: 100%;
+	min-width: 36rem;
+	table-layout: fixed;
+}
+
+table.data-table.admin-table.admin-table--mutes th:first-child,
+table.data-table.admin-table.admin-table--mutes td:first-child,
+table.data-table.admin-table.admin-table--mutes th:last-child,
+table.data-table.admin-table.admin-table--mutes td:last-child {
+	width: auto;
+}
+
+.admin-table--mutes th,
+.admin-table--mutes td {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.admin-table--mutes col.mute-col-date {
+	width: 10.25rem;
+}
+
+.admin-table--mutes col.mute-col-action {
+	width: 10.25rem;
+}
+
+.admin-table--mutes col.mute-col-username {
+	width: 14%;
+}
+
+.admin-table--mutes col.mute-col-email {
+	width: 24%;
+}
+
+.admin-table--mutes col.mute-col-reason {
+	width: auto;
+}
+
+.admin-table--mutes col.mute-col-muted-by {
+	width: 14%;
+}
+
+.admin-table--mutes .mute-table__date,
+.admin-table--mutes th.mute-table__date-head {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-variant-numeric: tabular-nums;
+}
+
+.admin-table--mutes th.mute-table__date-head {
+	white-space: normal;
+	line-height: 1.25;
+	font-size: 0.88rem;
+}
+
+.admin-table--mutes td.mute-table__email {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.admin-table--mutes td.mute-table__reason {
+	white-space: normal;
+}
+
 @media (max-width: 640px) {
 	.site-header__inner {
 		flex-direction: column;

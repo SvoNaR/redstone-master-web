@@ -2,6 +2,7 @@ package ru.redstonemaster.web.controller;
 
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.util.UriUtils;
 import ru.redstonemaster.web.admin.AdminPageView;
 import ru.redstonemaster.web.admin.AdminStatsService;
 import ru.redstonemaster.web.admin.AdminStatsView;
+import ru.redstonemaster.web.comment.LessonCommentService;
 import ru.redstonemaster.web.locale.WebLocale;
 import ru.redstonemaster.web.profile.AvatarService;
 import ru.redstonemaster.web.profile.ProfileUserView;
@@ -29,15 +31,18 @@ public class AdminController {
 	private final UserService userService;
 	private final AvatarService avatarService;
 	private final AdminStatsService adminStatsService;
+	private final LessonCommentService commentService;
 
 	public AdminController(
 			UserService userService,
 			AvatarService avatarService,
-			AdminStatsService adminStatsService
+			AdminStatsService adminStatsService,
+			LessonCommentService commentService
 	) {
 		this.userService = userService;
 		this.avatarService = avatarService;
 		this.adminStatsService = adminStatsService;
+		this.commentService = commentService;
 	}
 
 	@GetMapping("/admin")
@@ -99,6 +104,38 @@ public class AdminController {
 			redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
 		}
 		return "redirect:/admin?" + this.buildAdminQuery(langCode, userPage, userSearch, modPage, modSearch);
+	}
+
+	@GetMapping("/admin/unmute-moderator")
+	public String unmuteModeratorForm(
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			Model model
+	) {
+		WebLocale locale = WebLocale.fromCode(langCode);
+		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Unmute moderator" : "Снять мьют с модератора");
+		model.addAttribute("mutedModerators", this.commentService.listActiveMutesForRole(UserRole.MODERATOR));
+		return "admin/unmute-moderator";
+	}
+
+	@PostMapping("/admin/unmute-moderator")
+	public String unmuteModerator(
+			Authentication authentication,
+			@RequestParam Long userId,
+			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
+			RedirectAttributes redirectAttributes
+	) {
+		WebLocale locale = WebLocale.fromCode(langCode);
+		try {
+			User actor = this.userService.findByUsername(authentication.getName()).orElseThrow();
+			this.commentService.unmuteUser(actor, userId);
+			redirectAttributes.addFlashAttribute(
+					"successMessage",
+					locale == WebLocale.EN ? "Moderator unmuted" : "Мьют с модератора снят"
+			);
+		} catch (RuntimeException exception) {
+			redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+		}
+		return "redirect:/admin/unmute-moderator?lang=" + langCode;
 	}
 
 	private String buildAdminQuery(String langCode, int userPage, String userSearch, int modPage, String modSearch) {

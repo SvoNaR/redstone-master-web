@@ -6,5 +6,6 @@ public enum NotificationType {
 	NEWS,
 	LESSON_MODERATION,
 	COMMENT_REPLY,
-	USER_MUTE
+	USER_MUTE,
+	USER_UNMUTE
 }

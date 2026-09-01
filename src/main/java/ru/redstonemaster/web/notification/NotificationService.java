@@ -1,6 +1,7 @@
 package ru.redstonemaster.web.notification;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.redstonemaster.web.moderation.LessonSubmission;
 import ru.redstonemaster.web.news.NewsPost;
@@ -148,7 +149,7 @@ public class NotificationService {
 		);
 	}
 
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void notifyUserMuted(Long targetUserId, String moderatorUsername, Instant mutedUntil, String reason) {
 		User target = this.userRepository.findById(targetUserId)
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -156,13 +157,42 @@ public class NotificationService {
 		String sourceKey = "user-mute:" + targetUserId + ":" + System.nanoTime();
 		String titleRu = "Ограничение комментариев";
 		String titleEn = "Comment restriction";
-		String messageRu = "Модератор " + moderatorUsername + " ограничил вам комментарии до "
-				+ untilLabel + " (UTC). Причина: " + reason;
-		String messageEn = "Moderator " + moderatorUsername + " restricted your comments until "
-				+ untilLabel + " (UTC). Reason: " + reason;
+		String messageRu = this.truncate(
+				"Модератор " + moderatorUsername + " ограничил вам комментарии до "
+						+ untilLabel + " (UTC). Причина: " + reason,
+				1024
+		);
+		String messageEn = this.truncate(
+				"Moderator " + moderatorUsername + " restricted your comments until "
+						+ untilLabel + " (UTC). Reason: " + reason,
+				1024
+		);
 		this.notificationRepository.save(new UserNotification(
 				target,
 				NotificationType.USER_MUTE,
+				sourceKey,
+				titleRu,
+				titleEn,
+				messageRu,
+				messageEn,
+				"/notifications",
+				"Открыть",
+				"Open"
+		));
+	}
+
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void notifyUserUnmuted(Long targetUserId, String actorUsername) {
+		User target = this.userRepository.findById(targetUserId)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+		String sourceKey = "user-unmute:" + targetUserId + ":" + System.nanoTime();
+		String titleRu = "Ограничение комментариев снято";
+		String titleEn = "Comment restriction lifted";
+		String messageRu = "Модератор " + actorUsername + " снял ограничение на комментарии к урокам.";
+		String messageEn = "Moderator " + actorUsername + " lifted your lesson comment restriction.";
+		this.notificationRepository.save(new UserNotification(
+				target,
+				NotificationType.USER_UNMUTE,
 				sourceKey,
 				titleRu,
 				titleEn,
