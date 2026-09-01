@@ -36,6 +36,8 @@ import ru.redstonemaster.web.user.PendingRegistrationService;
 import ru.redstonemaster.web.user.PendingRegistrationSession;
 import ru.redstonemaster.web.user.User;
 import ru.redstonemaster.web.user.UserService;
+import ru.redstonemaster.web.tutorial.TutorialProgressService;
+import ru.redstonemaster.web.tutorial.TutorialProgressStats;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -53,6 +55,7 @@ public class ProfileController {
 	private final LoginHelper loginHelper;
 	private final AvatarService avatarService;
 	private final ModAuthService modAuthService;
+	private final TutorialProgressService tutorialProgressService;
 
 	public ProfileController(
 			UserService userService,
@@ -63,7 +66,8 @@ public class ProfileController {
 			PendingChangeEmailFormValidator pendingChangeEmailFormValidator,
 			LoginHelper loginHelper,
 			AvatarService avatarService,
-			ModAuthService modAuthService
+			ModAuthService modAuthService,
+			TutorialProgressService tutorialProgressService
 	) {
 		this.userService = userService;
 		this.pendingRegistrationService = pendingRegistrationService;
@@ -74,6 +78,7 @@ public class ProfileController {
 		this.loginHelper = loginHelper;
 		this.avatarService = avatarService;
 		this.modAuthService = modAuthService;
+		this.tutorialProgressService = tutorialProgressService;
 	}
 
 	@GetMapping("/profile")
@@ -96,7 +101,9 @@ public class ProfileController {
 		if (authentication != null && authentication.isAuthenticated()
 				&& !"anonymousUser".equals(authentication.getPrincipal())) {
 			User user = this.userService.findByUsername(authentication.getName()).orElseThrow();
+			TutorialProgressStats progressStats = this.tutorialProgressService.getStats(user.getId());
 			model.addAttribute("profileUser", ProfileUserView.from(user, this.avatarService));
+			model.addAttribute("tutorialProgress", progressStats);
 			model.addAttribute("showProfileIntro", !user.isProfileIntroSeen());
 			model.addAttribute("pendingEmail", user.getPendingEmail());
 			return "profile/index";

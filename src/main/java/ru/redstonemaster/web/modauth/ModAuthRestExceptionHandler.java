@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
 
-@RestControllerAdvice(assignableTypes = ModAuthRestController.class)
+@RestControllerAdvice(assignableTypes = {ModAuthRestController.class, ModSyncRestController.class})
 public class ModAuthRestExceptionHandler {
 
 	@ExceptionHandler(IllegalArgumentException.class)

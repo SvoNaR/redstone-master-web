@@ -19,9 +19,45 @@
 		<img th:each="imageUrl : ${lesson.imageUrls()}" th:src="${imageUrl}" alt="" class="pixel-art"/>
 	</div>
 
-	<article class="lesson-body preformatted" th:utext="${@textLinkService.toHtml(lesson.body(), locale.code)}"></article>
+	<section class="lesson-goal" th:if="${primaryVideoId != null && lessonGoal != null && !lessonGoal.isBlank()}">
+		<h2 class="lesson-goal__heading" th:text="${goalHeading}">ЦЕЛЬ УРОКА</h2>
+		<p class="lesson-goal__text preformatted" th:text="${lessonGoal}"></p>
+	</section>
+
+	<div class="pseudo-video-player"
+		 th:if="${primaryVideoId != null}"
+		 th:attr="data-video-base=${videoBaseUrl},
+		          data-locale=${locale.code},
+		          data-seek-back-label=${locale.code == 'en' ? 'Rewind 5 sec' : 'Назад 5 сек'},
+		          data-seek-forward-label=${locale.code == 'en' ? 'Forward 5 sec' : 'Вперёд 5 сек'}">
+		<div class="pseudo-video-player__frame">
+			<canvas class="pseudo-video-player__canvas" width="854" height="480" aria-label="Tutorial video"></canvas>
+			<button type="button" class="pseudo-video-player__play-overlay" aria-label="Play">&#9654;</button>
+		</div>
+		<p class="pseudo-video-player__error" hidden></p>
+		<div class="pseudo-video-player__slider-row">
+			<input type="range" class="pseudo-video-player__slider" min="0" max="0" value="0" step="1"/>
+		</div>
+		<div class="pseudo-video-player__controls">
+			<span class="pseudo-video-player__time">0:00 / 0:00</span>
+			<div class="pseudo-video-player__transport">
+				<button type="button" class="pseudo-video-player__btn pseudo-video-player__seek-back">&#171; 5s</button>
+				<button type="button" class="pseudo-video-player__btn pseudo-video-player__play-toggle"
+						th:attr="aria-label=${locale.code == 'en' ? 'Play' : 'Воспроизведение'}">&#9654;</button>
+				<button type="button" class="pseudo-video-player__btn pseudo-video-player__seek-forward">5s &#187;</button>
+			</div>
+		</div>
+	</div>
+
+	<article class="lesson-body preformatted"
+			 th:if="${primaryVideoId != null && lessonBody != null && !lessonBody.isBlank()}"
+			 th:utext="${@textLinkService.toHtml(lessonBody, locale.code)}"></article>
+	<article class="lesson-body preformatted"
+			 th:if="${primaryVideoId == null}"
+			 th:utext="${@textLinkService.toHtml(lesson.body(), locale.code)}"></article>
 </main>
 
 <div th:replace="~{fragments/layout :: footer}"></div>
+<script th:if="${primaryVideoId != null}" th:src="@{/js/pseudo-video.js}"></script>
 </body>
 </html>

@@ -28,5 +28,5 @@ echo Starting Redstone Master Web on http://localhost:8080/
 echo Press Ctrl+C to stop, or run stop.bat from another window.
 echo.
 set MAVEN_OPTS=-Dfile.encoding=UTF-8
-mvn spring-boot:run
+mvn generate-resources spring-boot:run
 pause

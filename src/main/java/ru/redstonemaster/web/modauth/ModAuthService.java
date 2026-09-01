@@ -3,6 +3,8 @@ package ru.redstonemaster.web.modauth;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.redstonemaster.web.profile.AvatarService;
+import ru.redstonemaster.web.tutorial.TutorialProgressService;
+import ru.redstonemaster.web.tutorial.TutorialProgressStats;
 import ru.redstonemaster.web.user.User;
 import ru.redstonemaster.web.user.UserRepository;
 
@@ -16,19 +18,23 @@ public class ModAuthService {
 
 	private static final SecureRandom RANDOM = new SecureRandom();
 	private static final int CODE_BYTES = 24;
+	private static final int SYNC_TOKEN_BYTES = 32;
 
 	private final ModAuthRequestRepository modAuthRequestRepository;
 	private final UserRepository userRepository;
 	private final AvatarService avatarService;
+	private final TutorialProgressService tutorialProgressService;
 
 	public ModAuthService(
 			ModAuthRequestRepository modAuthRequestRepository,
 			UserRepository userRepository,
-			AvatarService avatarService
+			AvatarService avatarService,
+			TutorialProgressService tutorialProgressService
 	) {
 		this.modAuthRequestRepository = modAuthRequestRepository;
 		this.userRepository = userRepository;
 		this.avatarService = avatarService;
+		this.tutorialProgressService = tutorialProgressService;
 	}
 
 	@Transactional
@@ -81,9 +87,26 @@ public class ModAuthService {
 		User user = this.userRepository.findById(request.getUserId())
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
 		request.markConsumed();
+		user.setModSyncToken(this.newSyncToken());
+		this.userRepository.save(user);
+		return this.buildProfileResponse(user);
+	}
+
+	public ModAuthProfileResponse buildProfileResponse(User user) {
+		return this.buildProfileResponse(user, this.tutorialProgressService.getStats(user.getId()));
+	}
+
+	public ModAuthProfileResponse buildProfileResponse(User user, TutorialProgressStats stats) {
 		return new ModAuthProfileResponse(
 				user.getUsername(),
-				this.avatarService.getAvatarUrl(user)
+				this.avatarService.getAvatarUrl(user),
+				user.getModSyncToken(),
+				user.getEmail(),
+				user.getRole().name(),
+				user.getCreatedAt().toString(),
+				stats.completedLessons(),
+				stats.totalLessons(),
+				stats.completedLessonKeys()
 		);
 	}
 
@@ -121,6 +144,12 @@ public class ModAuthService {
 
 	private String newExchangeCode() {
 		byte[] bytes = new byte[CODE_BYTES];
+		RANDOM.nextBytes(bytes);
+		return HexFormat.of().formatHex(bytes);
+	}
+
+	private String newSyncToken() {
+		byte[] bytes = new byte[SYNC_TOKEN_BYTES];
 		RANDOM.nextBytes(bytes);
 		return HexFormat.of().formatHex(bytes);
 	}

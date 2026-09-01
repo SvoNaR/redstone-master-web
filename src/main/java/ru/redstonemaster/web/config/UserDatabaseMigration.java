@@ -38,6 +38,7 @@ public class UserDatabaseMigration implements ApplicationRunner {
 		this.addColumnIfMissing("avatar_path", "VARCHAR(128)");
 		this.addColumnIfMissing("custom_avatar", "BOOLEAN");
 		this.addColumnIfMissing("profile_intro_seen", "BOOLEAN");
+		this.addColumnIfMissing("mod_sync_token", "VARCHAR(64)");
 
 		this.jdbcTemplate.update("UPDATE users SET avatar_path = 'defaults/skin1.png' WHERE avatar_path IS NULL");
 		this.jdbcTemplate.update("UPDATE users SET custom_avatar = FALSE WHERE custom_avatar IS NULL");

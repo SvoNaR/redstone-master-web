@@ -39,6 +39,11 @@ class ModAuthServiceTest {
 		ModAuthProfileResponse response = this.modAuthService.exchange(state, this.requireExchangeCode(state));
 		assertEquals("mod_player", response.username());
 		assertTrue(response.avatarUrl().startsWith("/avatars/"));
+		assertTrue(response.syncToken() != null && !response.syncToken().isBlank());
+		assertEquals("mod@test.com", response.email());
+		assertEquals("USER", response.role());
+		assertEquals(0, response.completedLessons());
+		assertTrue(response.totalLessons() > 0);
 	}
 
 	@Test

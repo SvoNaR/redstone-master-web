@@ -3,14 +3,13 @@ package ru.redstonemaster.web.modauth;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import ru.redstonemaster.web.locale.WebLocale;
 import ru.redstonemaster.web.user.User;
 import ru.redstonemaster.web.user.UserRepository;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Controller
 public class ModAuthController {
@@ -48,20 +47,16 @@ public class ModAuthController {
 	public String returnToMod(
 			@RequestParam String state,
 			@RequestParam(name = "lang", defaultValue = "ru") String langCode,
-			HttpSession session,
-			Model model
+			HttpSession session
 	) {
 		session.removeAttribute(ModAuthSession.SESSION_STATE_KEY);
 		ModAuthRequest request = this.modAuthService.requireCompleted(state);
-		User user = this.modAuthService.requireCompletedUser(state);
-		WebLocale locale = WebLocale.fromCode(langCode);
-
-		model.addAttribute("pageTitle", locale == WebLocale.EN ? "Return to Minecraft" : "Вернуться в Minecraft");
-		model.addAttribute("username", user.getUsername());
-		model.addAttribute("callbackUrl",
-				"http://127.0.0.1:" + request.getCallbackPort()
-						+ "/callback?state=" + URLEncoder.encode(state, StandardCharsets.UTF_8)
-						+ "&code=" + URLEncoder.encode(request.getExchangeCode(), StandardCharsets.UTF_8));
-		return "auth/mod-return";
+		String exchangeCode = request.getExchangeCode();
+		if (exchangeCode == null || exchangeCode.isBlank()) {
+			throw new IllegalStateException("Mod auth exchange code is missing");
+		}
+		return "redirect:http://127.0.0.1:" + request.getCallbackPort()
+				+ "/callback?state=" + URLEncoder.encode(state, StandardCharsets.UTF_8)
+				+ "&code=" + URLEncoder.encode(exchangeCode, StandardCharsets.UTF_8);
 	}
 }

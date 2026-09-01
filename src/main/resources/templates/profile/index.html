@@ -69,6 +69,18 @@
 				</form>
 			</div>
 		</section>
+
+		<section class="profile-card profile-progress" th:if="${tutorialProgress != null}">
+			<h2 th:text="${locale.code == 'en' ? 'Tutorial progress (mod)' : 'Прогресс обучения (мод)'}">Прогресс обучения (мод)</h2>
+			<p class="profile-progress__summary">
+				<span th:text="${locale.code == 'en' ? 'Lessons completed' : 'Пройдено уроков'}">Пройдено уроков</span>:
+				<strong th:text="${tutorialProgress.completedLessons() + ' / ' + tutorialProgress.totalLessons()}">0 / 0</strong>
+			</p>
+			<p class="profile-progress__hint"
+			   th:text="${locale.code == 'en'
+					? 'Progress is synced when you sign in through the mod and when you exit Minecraft.'
+					: 'Прогресс синхронизируется при входе через мод и при выходе из Minecraft.'}"></p>
+		</section>
 	</div>
 </main>
 

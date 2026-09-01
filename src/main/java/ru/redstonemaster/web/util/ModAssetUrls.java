@@ -27,4 +27,11 @@ public final class ModAssetUrls {
 				: modPath;
 		return PREFIX + normalized;
 	}
+
+	public static String videoBaseUrl(String videoId) {
+		if (videoId == null || videoId.isBlank()) {
+			return "";
+		}
+		return PREFIX + "tutorials/videos/" + videoId + "/";
+	}
 }

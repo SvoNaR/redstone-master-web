@@ -135,6 +135,21 @@
 							</resources>
 						</configuration>
 					</execution>
+					<execution>
+						<id>copy-mod-tutorial-videos</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.outputDirectory}/static/mod-assets/tutorials/videos</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${mod.resources.dir}/tutorials/videos</directory>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>

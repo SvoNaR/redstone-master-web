@@ -13,6 +13,8 @@ import ru.redstonemaster.web.model.TutorialLesson;
 import ru.redstonemaster.web.model.TutorialSection;
 import ru.redstonemaster.web.service.ModLangService;
 import ru.redstonemaster.web.service.TutorialContentService;
+import ru.redstonemaster.web.tutorial.TutorialLessonContentHelper;
+import ru.redstonemaster.web.util.ModAssetUrls;
 
 @Controller
 @RequestMapping("/tutorial")
@@ -67,6 +69,19 @@ public class TutorialController {
 		model.addAttribute("section", section);
 		model.addAttribute("lesson", lesson);
 		model.addAttribute("pageTitle", lesson.title());
+
+		if (!lesson.videoIds().isEmpty()) {
+			TutorialLessonContentHelper.LessonBodyParts bodyParts =
+					TutorialLessonContentHelper.splitForVideo(lesson.body(), locale, this.modLangService);
+			model.addAttribute("goalHeading", this.modLangService.get(locale, "gui.redstone-master.tutorial.video.goal_heading"));
+			model.addAttribute("lessonGoal", bodyParts.goalParagraph());
+			model.addAttribute("lessonBody", bodyParts.remainingBody());
+			model.addAttribute("primaryVideoId", lesson.videoIds().getFirst());
+			model.addAttribute("videoBaseUrl", ModAssetUrls.videoBaseUrl(lesson.videoIds().getFirst()));
+		} else {
+			model.addAttribute("lessonBody", lesson.body());
+		}
+
 		return "tutorial/lesson";
 	}
 }

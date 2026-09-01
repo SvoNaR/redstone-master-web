@@ -22,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	Optional<User> findByPendingEmailVerificationToken(String token);
 
+	Optional<User> findByModSyncToken(String modSyncToken);
+
 	boolean existsByUsernameIgnoreCase(String username);
 
 	boolean existsByEmailIgnoreCase(String email);

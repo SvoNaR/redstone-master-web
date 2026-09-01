@@ -60,6 +60,9 @@ public class User {
 	@Column
 	private boolean profileIntroSeen = false;
 
+	@Column(length = 64, unique = true)
+	private String modSyncToken;
+
 	protected User() {
 	}
 
@@ -184,5 +187,13 @@ public class User {
 		this.pendingEmail = null;
 		this.pendingEmailVerificationToken = null;
 		this.pendingEmailVerificationExpiresAt = null;
+	}
+
+	public String getModSyncToken() {
+		return this.modSyncToken;
+	}
+
+	public void setModSyncToken(String modSyncToken) {
+		this.modSyncToken = modSyncToken;
 	}
 }
